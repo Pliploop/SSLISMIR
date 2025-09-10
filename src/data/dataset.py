@@ -191,10 +191,10 @@ class Giantsteps(BaseDataset):
         audio_dir: Optional[str] = 'data/giantsteps/audio',
         metadata_path: Optional[str] = 'data/giantsteps/metadata.json',
         sample_rate: int = 16000,
+        n_samples: int = 48000,
         mono: bool = True,
         processors: list[Callable] = [
             MultiView(view_samples = 48000, strategy = "same_view", keys = ["audio"]),
-            Truncate(n_samples = 48000, keys = ["audio"]),
         ],
         labels_: bool = False
         ):
@@ -220,6 +220,10 @@ class Giantsteps(BaseDataset):
             sample["name"] = key
 
         sample = self.processor_chain(sample)
+
+        # random truncate audio to n_samples
+        start_idx = torch.randint(0, audio.shape[0] - self.n_samples, (1,))
+        sample["audio"] = sample["audio"][start_idx:start_idx + self.n_samples]
 
         return sample
 
