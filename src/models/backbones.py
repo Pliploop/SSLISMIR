@@ -60,8 +60,6 @@ class MLP(nn.Module):
         # Output layer
         self.layers.append(nn.Linear(prev_features, out_features, bias=bias))
         
-        # Initialize weights
-        self._initialize_weights()
     
     def _get_activation(self, x):
         """Apply the specified activation function."""
@@ -98,3 +96,72 @@ class MLP(nn.Module):
         
         return x
     
+    
+from torch import nn
+import torch
+
+class VGGish(nn.Module):
+    """
+    VGGish-style architecture with parametrizable layer channels, output fully connected layer,
+    and residual skip connections within each block.
+    Args:
+        in_channels (int): Number of input channels (e.g., 1 for mel spectrograms).
+        channels (list of int): List of output channels for each conv block.
+        proj_dim (int): Output dimension of the final fully connected layer.
+    """
+    def __init__(self, in_channels=1, channels=[64, 128, 256, 512], proj_dim=128):
+        super(VGGish, self).__init__()
+        self.in_channels = in_channels
+        self.channels = channels
+
+        self.blocks = nn.ModuleList()
+        input_c = in_channels
+        for i, out_c in enumerate(channels):
+            block = []
+            # First conv
+            block.append(nn.Conv2d(input_c, out_c, kernel_size=3, padding=1))
+            block.append(nn.BatchNorm2d(out_c))
+            block.append(nn.ReLU(inplace=True))
+            # Second conv
+            block.append(nn.Conv2d(out_c, out_c, kernel_size=3, padding=1))
+            block.append(nn.BatchNorm2d(out_c))
+            # No activation here, will be after residual
+            self.blocks.append(nn.Sequential(*block))
+            input_c = out_c
+
+        # For skip connections, if in/out channels differ, use 1x1 conv
+        self.res_convs = nn.ModuleList()
+        input_c = in_channels
+        for out_c in channels:
+            if input_c != out_c:
+                self.res_convs.append(nn.Conv2d(input_c, out_c, kernel_size=1))
+            else:
+                self.res_convs.append(nn.Identity())
+            input_c = out_c
+
+        self.maxpools = nn.ModuleList([
+            nn.MaxPool2d(kernel_size=2, stride=2) for _ in channels
+        ])
+
+        self.avgpool = nn.AdaptiveAvgPool2d((1, 1))
+        self.fc = nn.Linear(channels[-1], proj_dim)
+
+    def forward(self, x):
+        # Accepts input of shape (B, C, F, T) or (B, F, T)
+        if x.ndim == 3:
+            x = x.unsqueeze(1)  # (B, 1, F, T)
+        for i, block in enumerate(self.blocks):
+            identity = self.res_convs[i](x)
+            out = block(x)
+            out = out + identity
+            out = nn.functional.relu(out, inplace=True)
+            out = self.maxpools[i](out)
+            x = out
+        x = self.avgpool(x)
+        x = x.view(x.size(0), -1)
+        x = self.fc(x)
+        return x
+
+# Example instantiation:
+# vggish = VGGish(in_channels=1, channels=[64, 128, 256, 512], proj_dim=128)
+vggish = VGGish(in_channels=1, channels=[128, 256, 512, 512], proj_dim=512)

@@ -1,6 +1,10 @@
 import torch
 import lightning as L
 from ema_pytorch.ema_pytorch import EMA
+from typing import Any
+from torch import nn
+from ..utils.utils import instantiate_from_mapping
+from ..utils.utils import build_model
 
 class BaseWrapper(L.LightningModule):
     def __init__(
@@ -13,18 +17,30 @@ class BaseWrapper(L.LightningModule):
     ):
         super().__init__()
 
-        self.backbone = backbone
-        self.loss_params = loss_params
-        self.opt_params = opt_params
+        if isinstance(backbone, nn.Module):
+            self.backbone = backbone
+        else:
+            self.backbone = build_model(backbone)
+
+        if isinstance(loss_params, dict):
+            self.loss = instantiate_from_mapping(loss_params)
+        else:
+            self.loss = loss_params
+        
+        # if the optimizers, schedulers are not lists or dicts, they are just a single optimizer or scheduler
+        
+        if isinstance(sched_params, list) or isinstance(sched_params, dict):
+            self.sched_params = sched_params
+        else:
+            self.sched_params = [sched_params]
+        
         self.sched_params = sched_params
         self.ema_params = ema_params
 
-        self.save_hyperparameters()
 
 
     def configure_model(self):
         self.model = build_model(self.model_params, show=False)
-        self.loss = instantiate_from_mapping(self.loss_params)
 
     def probe_mode(self, head : nn.Module):
         for param in self.parameters():
@@ -34,8 +50,13 @@ class BaseWrapper(L.LightningModule):
 
 
     def init_optimizer_from_config(self, config: dict[str, Any]):
+    
         ## if config is a list, then we have multiple optimizers
         ## if target_params is in a config then the optimizer will only optimize those parameters
+        
+        if not isinstance(config, list) and not isinstance(config, dict):
+            return config
+        
         if isinstance(config, list):
             opts = []
             for opt_config in config:
@@ -57,6 +78,7 @@ class BaseWrapper(L.LightningModule):
 
     def configure_optimizers(self):
         opt = self.init_optimizer_from_config(self.opt_params)
+        
         
         if self.sched_params is not None:
             if isinstance(self.sched_params, list):
@@ -263,4 +285,3 @@ class BarlowTwins(BaseWrapper):
 
         self.log("loss", loss)
         return loss
-

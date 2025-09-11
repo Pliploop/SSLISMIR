@@ -150,9 +150,9 @@ class BaseDataset(Dataset):
         mono: bool = True,
         processors: list[Callable] = [
             MultiView(view_samples = 48000, strategy = "same_view"),
-            Truncate(n_samples = 48000, keys = ["audio"]),
         ],
-        labels_: bool = False
+        labels_: bool = False,
+        n_samples: int = 48000
     ):
         self.audio_dir = audio_dir
         self.metadata_path = metadata_path
@@ -162,6 +162,7 @@ class BaseDataset(Dataset):
         self.labels_ = labels_
         # Load metadata (you'll need to implement this based on your data format)
         self.metadata = self._load_metadata()
+        self.n_samples = n_samples
         
         # Create processor chain
         self.processor_chain = ProcessorChain(processors)
@@ -198,7 +199,7 @@ class Giantsteps(BaseDataset):
         ],
         labels_: bool = False
         ):
-        super().__init__(audio_dir, metadata_path, sample_rate, mono, processors)
+        super().__init__(audio_dir, metadata_path, sample_rate, mono, processors, n_samples)
 
     def __getitem__(self, idx):
         item = self.metadata[idx]
@@ -218,6 +219,8 @@ class Giantsteps(BaseDataset):
         if self.labels_:
             sample["label_"] = label_
             sample["name"] = key
+            
+        print(sample["audio"].shape)
 
         sample = self.processor_chain(sample)
 
