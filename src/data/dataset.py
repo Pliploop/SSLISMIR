@@ -234,7 +234,11 @@ class Giantsteps(BaseDataset):
         audio_path = item["file_path"]
         label_ = item.get("label_id")
         key = item.get("key")
-        audio, sr = torchaudio.load(audio_path)
+        try:
+            audio, sr = torchaudio.load(audio_path)
+        except Exception as e:
+            print(f"Error loading audio file {audio_path}: {e}")
+            return self[idx+1]
         if self.mono:
             audio = audio.mean(dim=0)
         if sr != self.sample_rate:

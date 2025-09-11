@@ -5,3 +5,6 @@
 *.pyc
 .vscode
 lightning_logs
+wandb
+
+music-ssl-ismir

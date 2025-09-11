@@ -2,8 +2,7 @@ import os
 import torch
 import numpy as np
 from typing import Optional, List, Dict, Any
-from pytorch_lightning import Callback
-from pytorch_lightning.utilities.types import STEP_OUTPUT
+from lightning.pytorch import Callback
 import wandb
 
 from ..utils.viz import (
@@ -71,7 +70,7 @@ class Embedding2DVisualizationCallback(Callback):
         self, 
         trainer, 
         pl_module, 
-        outputs: STEP_OUTPUT, 
+        outputs, 
         batch: Any, 
         batch_idx: int
     ) -> None:
@@ -87,7 +86,7 @@ class Embedding2DVisualizationCallback(Callback):
         self, 
         trainer, 
         pl_module, 
-        outputs: STEP_OUTPUT, 
+        outputs, 
         batch: Any, 
         batch_idx: int
     ) -> None:
@@ -98,7 +97,7 @@ class Embedding2DVisualizationCallback(Callback):
         self, 
         trainer, 
         pl_module, 
-        outputs: STEP_OUTPUT, 
+        outputs, 
         batch: Any, 
         batch_idx: int
     ) -> None:
@@ -136,17 +135,17 @@ class Embedding2DVisualizationCallback(Callback):
             return
         
         # Extract clean data
-        clean_data = batch["clean"]
+        clean_data = batch["audio"]
         
         # Extract labels if available
-        labels = batch.get("labels", None)
+        labels = batch.get("label_", None)
         
         # Set model to eval mode and disable gradients
         with torch.no_grad():
             pl_module.eval()
             try:
                 # Extract features using the model's extract_features method
-                embeddings = pl_module.model.extract_features(clean_data)
+                embeddings = pl_module.backbone(clean_data)
                 
                 # Add to cache
                 self.embedding_cache.append(embeddings.detach())
@@ -156,10 +155,8 @@ class Embedding2DVisualizationCallback(Callback):
             except Exception as e:
                 print(f"Warning: Failed to extract embeddings in {stage} stage: {e}")
             finally:
-                # Restore training mode if we were training
-                if pl_module.training:
-                    pl_module.train()
-    
+                pl_module.train()
+
     def _compute_reduction_and_log(self, trainer, stage: str, step_or_epoch: int) -> None:
         """
         Compute dimensionality reduction and log visualizations.

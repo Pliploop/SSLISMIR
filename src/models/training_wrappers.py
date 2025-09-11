@@ -122,7 +122,7 @@ class ContrastiveLearning(BaseWrapper):
         g = self.projection_head(z)
         
 
-        loss = self.loss(z, target_sims)
+        loss = self.loss(g, target_sims)
         self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
     

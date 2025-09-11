@@ -185,3 +185,15 @@ def show_audio_and_spectrogram(audio: torch.Tensor, sr: int, n_fft: int = 400, h
     
     plt.tight_layout()
     return fig
+
+def embeddings_to_numpy(embeddings: List[torch.Tensor]) -> np.ndarray:
+    """
+    Convert list of embeddings to numpy array.
+    """
+    return np.concatenate(embeddings, axis=0)
+
+def labels_to_numpy(labels: List[torch.Tensor]) -> np.ndarray:
+    """
+    Convert list of labels to numpy array.
+    """
+    return np.concatenate(labels, axis=0)

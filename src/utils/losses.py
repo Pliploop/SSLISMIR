@@ -80,14 +80,15 @@ class InfoNCE(nn.Module):
     def forward(self, features, target_sims = None):
         
         device = features.device
-        bs = features.shape[0]
+        bs = features.shape[0] // 2
 
         labels = torch.cat([torch.arange(bs),torch.arange(bs)], dim=0)
         labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
         labels = labels.to(device)
 
         features = F.normalize(features, dim=1)
-
+        
+        
         similarity_matrix = torch.matmul(features, features.T)
         mask = torch.eye(labels.shape[0], dtype=torch.bool).to(device)
         labels = labels[~mask].view(labels.shape[0], -1)
