@@ -96,9 +96,6 @@ class MLP(nn.Module):
         
         return x
     
-    
-from torch import nn
-import torch
 
 class VGGish(nn.Module):
     """
@@ -160,7 +157,9 @@ class VGGish(nn.Module):
         x = self.avgpool(x)
         x = x.view(x.size(0), -1)
         x = self.fc(x)
-        return x
+        return {
+            "z": x
+        }
 
 # Example instantiation:
 # vggish = VGGish(in_channels=1, channels=[64, 128, 256, 512], proj_dim=128)

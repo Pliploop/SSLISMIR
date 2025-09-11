@@ -1,4 +1,9 @@
 import torch
+import torch.nn as nn
+import numpy as np
+import torch.distributed as dist
+import torch.nn.functional as F
+from typing import Dict
 
 
 class NTXent(nn.Module):
@@ -22,7 +27,7 @@ class NTXent(nn.Module):
         # the target similarities are 1 for all pairs of views 1 and 2
         # the target similarities are 0 for all pairs of views 1 and 1, and 2 and 2
         
-        eye_ = torch.eye(batch_size//2, device = features.device)
+        eye_ = torch.eye(batch_size//2)
         sims = torch.cat([eye_, eye_], dim = 1)
         sims2 = torch.cat([eye_, eye_], dim = 1)
         return torch.cat([sims, sims2], dim = 0)
@@ -31,10 +36,15 @@ class NTXent(nn.Module):
         if target_sims is None:
             target_sims = self.get_default_target_sims(features.shape[0])
 
+        device = features.device
+        target_sims = target_sims.to(device)
+        
+
         positive_mask = target_sims == 1
         negative_mask = target_sims == 0
         
-        self_contrast = (~(torch.eye(positive_mask.shape[0], device = features.device).bool())).int()
+        
+        self_contrast = (~(torch.eye(positive_mask.shape[0], device = device).bool())).int()
         
         
         positive_mask = positive_mask * self_contrast
@@ -42,9 +52,7 @@ class NTXent(nn.Module):
         positive_sums[positive_sums == 0] = 1
         negative_mask = negative_mask * self_contrast
         
-    
         original_cosim = self.get_similarities(features=features)    
-        
         original_cosim = torch.exp(original_cosim)   ## remove this when reverting
          
         
@@ -53,7 +61,7 @@ class NTXent(nn.Module):
         
         log_prob = pos/neg
         
-        log_prob = -torch.log(log_prob + 1e-6) ## zeros in here : how to avoid them?
+        log_prob = -torch.log(log_prob + 1e-4) ## zeros in here : how to avoid them?
         log_prob = log_prob * positive_mask
         log_prob = log_prob.sum(1)
         log_prob = log_prob / positive_sums       
@@ -61,6 +69,42 @@ class NTXent(nn.Module):
         loss = torch.mean(log_prob) 
         
         return loss
+
+class InfoNCE(nn.Module):
+    def __init__(self, temperature=0.07):
+        super().__init__()
+        self.temperature = temperature
+        self.xent = nn.CrossEntropyLoss()
+        
+        
+    def forward(self, features, target_sims = None):
+        
+        device = features.device
+        bs = features.shape[0]
+
+        labels = torch.cat([torch.arange(bs),torch.arange(bs)], dim=0)
+        labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
+        labels = labels.to(device)
+
+        features = F.normalize(features, dim=1)
+
+        similarity_matrix = torch.matmul(features, features.T)
+        mask = torch.eye(labels.shape[0], dtype=torch.bool).to(device)
+        labels = labels[~mask].view(labels.shape[0], -1)
+        similarity_matrix = similarity_matrix[~mask].view(similarity_matrix.shape[0], -1)
+        # assert similarity_matrix.shape == labels.shape
+
+        # select and combine multiple positives
+        positives = similarity_matrix[labels.bool()].view(labels.shape[0], -1)
+
+        # select only the negatives the negatives
+        negatives = similarity_matrix[~labels.bool()].view(similarity_matrix.shape[0], -1)
+
+        logits = torch.cat([positives, negatives], dim=1)
+        labels = torch.zeros(logits.shape[0], dtype=torch.long).to(device)
+
+        logits = logits / self.temperature
+        return self.xent(logits, labels)
 
 class MSE(nn.Module):
     def __init__(self):

@@ -9,18 +9,18 @@ from ..utils.utils import build_model
 class BaseWrapper(L.LightningModule):
     def __init__(
         self,
-        backbone: nn.Module,
-        loss_params: dict[str, Any],
-        opt_params: dict[str, Any],
-        sched_params: dict[str, Any] | None = None,
-        ema_params: dict[str, Any] | None = None,
+        model_params,
+        loss_params,
+        opt_params,
+        sched_params,
+        ema_params,
     ):
         super().__init__()
 
-        if isinstance(backbone, nn.Module):
-            self.backbone = backbone
+        if isinstance(model_params, nn.Module):
+            self.backbone = model_params
         else:
-            self.backbone = build_model(backbone)
+            self.backbone = build_model(model_params)
 
         if isinstance(loss_params, dict):
             self.loss = instantiate_from_mapping(loss_params)
@@ -36,11 +36,9 @@ class BaseWrapper(L.LightningModule):
         
         self.sched_params = sched_params
         self.ema_params = ema_params
+        self.opt_params = opt_params
 
 
-
-    def configure_model(self):
-        self.model = build_model(self.model_params, show=False)
 
     def probe_mode(self, head : nn.Module):
         for param in self.parameters():
@@ -105,7 +103,15 @@ class ContrastiveLearning(BaseWrapper):
 
     def __init__(self, backbone: nn.Module, projection_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
         super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
-        self.projection_head = projection_head
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
+            
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head
+        })
     
     def training_step(self, batch, batch_idx):
         target_sims = batch.get("target_sims")
@@ -114,9 +120,10 @@ class ContrastiveLearning(BaseWrapper):
         out_ = self.backbone(views)
         z = out_["z"]
         g = self.projection_head(z)
+        
 
         loss = self.loss(z, target_sims)
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
@@ -128,7 +135,7 @@ class ContrastiveLearning(BaseWrapper):
         g = self.projection_head(z)
 
         loss = self.loss(g, target_sims)
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
 
 
@@ -136,7 +143,14 @@ class SimSiam(BaseWrapper):
 
     def __init__(self, backbone: nn.Module, projection_head: nn.Module, predictor_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
         super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
-        self.projection_head = projection_head
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
+        if isinstance(predictor_head, nn.Module):
+            self.predictor_head = predictor_head
+        else:
+            self.predictor_head = build_model(predictor_head)
         self.predictor_head = predictor_head
 
     def training_step(self, batch, batch_idx):
@@ -191,7 +205,14 @@ class BYOL(BaseWrapper):
 
     def __init__(self, backbone: nn.Module, projection_head: nn.Module, predictor_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
         super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
-        self.projection_head = projection_head
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
+        if isinstance(predictor_head, nn.Module):
+            self.predictor_head = predictor_head
+        else:
+            self.predictor_head = build_model(predictor_head)
         self.predictor_head = predictor_head
 
         
@@ -253,7 +274,10 @@ class BYOL(BaseWrapper):
 class BarlowTwins(BaseWrapper):
     def __init__(self, backbone: nn.Module, projection_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
         super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
-        self.projection_head = projection_head
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
         
     def training_step(self, batch, batch_idx):
         views = batch.get("views")

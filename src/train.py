@@ -61,7 +61,7 @@ def main():
     with trainer.init_module():
         model = instantiate(
             config["__wrapper__"],
-            model_params=config["model"],
+            **config["model"],
             loss_params=config["loss"],
             opt_params=config["optimizer"],
             sched_params=config.get("scheduler", None),

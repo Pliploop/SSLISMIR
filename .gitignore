@@ -3,3 +3,5 @@
 /test.ipynb
 
 *.pyc
+.vscode
+lightning_logs
