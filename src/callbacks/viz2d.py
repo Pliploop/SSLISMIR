@@ -23,8 +23,6 @@ class Embedding2DVisualizationCallback(Callback):
         self,
         every_n_steps: int = 100,
         reduction_method: str = "umap",
-        save_embeddings: bool = False,
-        save_dir: str = "embeddings",
         tsne_perplexity: float = 30.0,
         umap_n_neighbors: int = 15,
         umap_min_dist: float = 0.1,
@@ -50,8 +48,6 @@ class Embedding2DVisualizationCallback(Callback):
         
         self.every_n_steps = every_n_steps
         self.reduction_method = reduction_method
-        self.save_embeddings = save_embeddings
-        self.save_dir = save_dir
         self.tsne_perplexity = tsne_perplexity
         self.umap_n_neighbors = umap_n_neighbors
         self.umap_min_dist = umap_min_dist
@@ -61,26 +57,6 @@ class Embedding2DVisualizationCallback(Callback):
         self.embedding_cache: List[torch.Tensor] = []
         self.label_cache: List[torch.Tensor] = []
         self.step_count = 0
-        
-        # Create save directory if needed
-        if self.save_embeddings:
-            os.makedirs(self.save_dir, exist_ok=True)
-    
-    def on_train_batch_end(
-        self, 
-        trainer, 
-        pl_module, 
-        outputs, 
-        batch: Any, 
-        batch_idx: int
-    ) -> None:
-        """Extract embeddings from training batch."""
-        self._extract_embeddings(pl_module, batch, "train")
-        self.step_count += 1
-        
-        # Compute reduction every N steps
-        if self.step_count % self.every_n_steps == 0:
-            self._compute_reduction_and_log(trainer, "train", self.step_count)
     
     def on_validation_batch_end(
         self, 
@@ -93,33 +69,10 @@ class Embedding2DVisualizationCallback(Callback):
         """Extract embeddings from validation batch."""
         self._extract_embeddings(pl_module, batch, "val")
     
-    def on_test_batch_end(
-        self, 
-        trainer, 
-        pl_module, 
-        outputs, 
-        batch: Any, 
-        batch_idx: int
-    ) -> None:
-        """Extract embeddings from test batch."""
-        self._extract_embeddings(pl_module, batch, "test")
-    
-    def on_train_epoch_end(self, trainer, pl_module) -> None:
-        """Compute reduction and log at end of training epoch."""
-        if len(self.embedding_cache) > 0:
-            self._compute_reduction_and_log(trainer, "train", trainer.current_epoch)
-            self._reset_cache()
-    
     def on_validation_epoch_end(self, trainer, pl_module) -> None:
         """Compute reduction and log at end of validation epoch."""
         if len(self.embedding_cache) > 0:
             self._compute_reduction_and_log(trainer, "val", trainer.current_epoch)
-            self._reset_cache()
-    
-    def on_test_epoch_end(self, trainer, pl_module) -> None:
-        """Compute reduction and log at end of test epoch."""
-        if len(self.embedding_cache) > 0:
-            self._compute_reduction_and_log(trainer, "test", trainer.current_epoch)
             self._reset_cache()
     
     def _extract_embeddings(self, pl_module, batch: Any, stage: str) -> None:
@@ -131,8 +84,6 @@ class Embedding2DVisualizationCallback(Callback):
             batch: Input batch
             stage: Current stage (train/val/test)
         """
-        if "clean" not in batch:
-            return
         
         # Extract clean data
         clean_data = batch["audio"]
@@ -141,22 +92,13 @@ class Embedding2DVisualizationCallback(Callback):
         labels = batch.get("label_", None)
         
         # Set model to eval mode and disable gradients
-        with torch.no_grad():
-            pl_module.eval()
-            try:
-                # Extract features using the model's extract_features method
-                embeddings = pl_module.backbone(clean_data)
-                
-                # Add to cache
-                self.embedding_cache.append(embeddings.detach())
-                if labels is not None:
-                    self.label_cache.append(labels.detach())
-                
-            except Exception as e:
-                print(f"Warning: Failed to extract embeddings in {stage} stage: {e}")
-            finally:
-                pl_module.train()
-
+        embeddings = pl_module.backbone(clean_data)["z"]
+        
+        # Add to cache
+        self.embedding_cache.append(embeddings.detach())
+        if labels is not None:
+            self.label_cache.append(labels.detach())
+        
     def _compute_reduction_and_log(self, trainer, stage: str, step_or_epoch: int) -> None:
         """
         Compute dimensionality reduction and log visualizations.
@@ -216,15 +158,6 @@ class Embedding2DVisualizationCallback(Callback):
                 f"{stage}/reduced_dimension": reduced_embeddings.shape[1]
             })
         
-        # Save embeddings locally if requested
-        if self.save_embeddings:
-            self._save_embeddings(
-                embeddings_np, 
-                reduced_embeddings, 
-                labels_np, 
-                stage, 
-                step_or_epoch
-            )
         
         # Close matplotlib figure to free memory
         plt.close(fig_matplotlib)
@@ -232,42 +165,6 @@ class Embedding2DVisualizationCallback(Callback):
         # Reset cache after computing reduction
         self._reset_cache()
     
-    def _save_embeddings(
-        self, 
-        embeddings: np.ndarray, 
-        reduced_embeddings: np.ndarray, 
-        labels: Optional[np.ndarray], 
-        stage: str, 
-        step_or_epoch: int
-    ) -> None:
-        """
-        Save embeddings and reduced embeddings locally.
-        
-        Args:
-            embeddings: Original embeddings
-            reduced_embeddings: Reduced 2D embeddings
-            labels: Optional labels
-            stage: Current stage
-            step_or_epoch: Current step or epoch
-        """
-        # Create filename
-        filename = f"{stage}_embeddings_{step_or_epoch}.npz"
-        filepath = os.path.join(self.save_dir, filename)
-        
-        # Save data
-        save_dict = {
-            'embeddings': embeddings,
-            'reduced_embeddings': reduced_embeddings,
-            'reduction_method': self.reduction_method,
-            'stage': stage,
-            'step_or_epoch': step_or_epoch
-        }
-        
-        if labels is not None:
-            save_dict['labels'] = labels
-        
-        np.savez_compressed(filepath, **save_dict)
-        print(f"Saved embeddings to {filepath}")
     
     def _reset_cache(self) -> None:
         """Reset the embedding and label caches."""
@@ -280,4 +177,86 @@ class Embedding2DVisualizationCallback(Callback):
     
     def on_test_end(self, trainer, pl_module) -> None:
         """Clean up at the end of testing."""
+        self._reset_cache()
+
+
+        # INSERT_YOUR_CODE
+
+import os
+import torch
+
+class SaveEmbeddingsCallback(Callback):
+    """
+    Callback to save embeddings for each sample in the validation set.
+    Saves one .pt file per sample, containing the embedding, label, and file_path.
+    """
+    def __init__(self, save_dir: str = "embeddings"):
+        super().__init__()
+        self.save_dir = save_dir
+        os.makedirs(self.save_dir, exist_ok=True)
+        self._reset_cache()
+
+    def _reset_cache(self):
+        """Reset the embedding and label caches."""
+        self.embedding_cache = []
+        self.label_cache = []
+        self.file_path_cache = []
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+        # Assume batch contains: "file_path", "label", and the model returns embeddings in outputs
+        # outputs: the output of pl_module.validation_step
+        # batch: the batch dict from the dataloader
+
+        # Get embeddings from outputs or batch
+        # Try to support both dict and tensor outputs
+        if isinstance(outputs, dict) and "embeddings" in outputs:
+            embeddings = outputs["embeddings"]
+        elif hasattr(outputs, "detach"):
+            embeddings = outputs.detach()
+        else:
+            embeddings = outputs
+
+        # Get file paths and labels
+        file_paths = batch.get("file_path", None)
+        labels = batch.get("label", None)
+
+        # Convert to list if not already
+        if isinstance(file_paths, str):
+            file_paths = [file_paths]
+        if labels is not None and not isinstance(labels, (list, tuple)):
+            labels = labels.tolist() if hasattr(labels, "tolist") else [labels]
+
+        # Detach embeddings and move to cpu
+        embeddings = embeddings.detach().cpu()
+
+        # Save to cache for epoch end
+        self.embedding_cache.append(embeddings)
+        if labels is not None:
+            self.label_cache.append(labels)
+        self.file_path_cache.extend(file_paths)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Concatenate all cached embeddings and labels
+        embeddings = torch.cat(self.embedding_cache, dim=0)
+        file_paths = self.file_path_cache
+        labels = None
+        if self.label_cache:
+            # Flatten list of lists
+            labels = [item for sublist in self.label_cache for item in (sublist if isinstance(sublist, (list, tuple)) else [sublist])]
+
+        # Save each embedding individually
+        for idx, file_path in enumerate(file_paths):
+            # Clean file_path to use as filename
+            base_name = os.path.basename(file_path)
+            name, _ = os.path.splitext(base_name)
+            save_path = os.path.join(self.save_dir, f"{name}_embedding.pt")
+            data = {
+                "embedding": embeddings[idx]
+            }
+            if labels is not None:
+                data["label"] = labels[idx]
+            data["file_path"] = file_path
+            torch.save(data, save_path)
+
+        # Reset cache after saving
         self._reset_cache()
