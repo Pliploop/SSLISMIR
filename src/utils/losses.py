@@ -75,45 +75,45 @@ class InfoNCE(nn.Module):
         super().__init__()
         self.temperature = temperature
         self.xent = nn.CrossEntropyLoss()
+        self.similarity_f = nn.CosineSimilarity(2)
+        self.criterion = nn.CrossEntropyLoss(reduction = "sum")
+        
+    def mask_(self, bs):
+        
+        mask = torch.ones((bs, bs), dtype=bool)
+        mask = mask.fill_diagonal_(0)
+        for i in range(bs//2):
+            mask[i, bs//2 + i] = 0
+            mask[bs//2 + i, i] = 0
+        return mask
         
         
     def forward(self, features, target_sims = None):
+        """
+        We do not sample negative examples explicitly.
+        Instead, given a positive pair, similar to (Chen et al., 2017), we treat the other 2(N − 1) augmented examples within a minibatch as negative examples.
+        """
+        N = features.shape[0]
+        bs = N//2
+
+        z = features
+
+        sim = self.similarity_f(z.unsqueeze(1), z.unsqueeze(0)) / self.temperature
+
+        sim_i_j = torch.diag(sim, bs)
+        sim_j_i = torch.diag(sim, -bs)
         
-        device = features.device
-        bs = features.shape[0] // 2
+        mask = self.mask_(N)
 
-        labels = torch.cat([torch.arange(bs),torch.arange(bs)], dim=0)
-        labels = (labels.unsqueeze(0) == labels.unsqueeze(1)).float()
-        labels = labels.to(device)
+        # We have 2N samples, but with Distributed training every GPU gets N examples too, resulting in: 2xNxN
+        positive_samples = torch.cat((sim_i_j, sim_j_i), dim=0).reshape(N, 1)
+        negative_samples = sim[mask].reshape(N, -1)
 
-        features = F.normalize(features, dim=1)
-        
-        
-        similarity_matrix = torch.matmul(features, features.T)
-        mask = torch.eye(labels.shape[0], dtype=torch.bool).to(device)
-        labels = labels[~mask].view(labels.shape[0], -1)
-        similarity_matrix = similarity_matrix[~mask].view(similarity_matrix.shape[0], -1)
-        # assert similarity_matrix.shape == labels.shape
-
-        # select and combine multiple positives
-        positives = similarity_matrix[labels.bool()].view(labels.shape[0], -1)
-
-        # select only the negatives the negatives
-        negatives = similarity_matrix[~labels.bool()].view(similarity_matrix.shape[0], -1)
-
-        logits = torch.cat([positives, negatives], dim=1)
-        labels = torch.zeros(logits.shape[0], dtype=torch.long).to(device)
-
-        logits = logits / self.temperature
-        return self.xent(logits, labels)
-
-class MSE(nn.Module):
-    def __init__(self):
-        super().__init__()
-        self.criterion = nn.MSELoss()
-
-    def forward(self, x, y):
-        return self.criterion(x, y)
+        labels = torch.zeros(N).to(positive_samples.device).long()
+        logits = torch.cat((positive_samples, negative_samples), dim=1)
+        loss = self.criterion(logits, labels)
+        loss /= N
+        return loss
 
 
 class DINOLoss(nn.Module):

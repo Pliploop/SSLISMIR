@@ -145,7 +145,7 @@ class VGGish(nn.Module):
 
     def forward(self, x):
         # Accepts input of shape (B, C, F, T) or (B, F, T)
-        if x.ndim == 3:
+        if len(x.shape) == 3:
             x = x.unsqueeze(1)  # (B, 1, F, T)
         for i, block in enumerate(self.blocks):
             identity = self.res_convs[i](x)

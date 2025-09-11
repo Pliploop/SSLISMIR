@@ -7,8 +7,6 @@ from lightning.pytorch.utilities import rank_zero_info
 import importlib
 from utils import instantiate
 
-from data.dataset import build_dataloader
-from pipelines.train_wrapper import TrainingWrapper
 from utils import load_weights_from_url
 
 from utils import (
@@ -17,6 +15,28 @@ from utils import (
     MAPPING_NAME_KEY,
     MAPPING_KWARGS_KEY,
 )
+
+from torch.utils.data import DataLoader
+
+def build_dataloader(config: dict[str, Any]) -> dict[str, DataLoader]:
+    dataset_config = config.get("dataset", None)
+    train_dataset = dataset_config.get("train", None)
+    val_dataset = dataset_config.get("val", None)
+    test_dataset = dataset_config.get("test", None)
+    
+    train_dataset = instantiate_from_mapping(train_dataset)
+    val_dataset = instantiate_from_mapping(val_dataset)
+    test_dataset = instantiate_from_mapping(test_dataset)
+    
+    train_loader = DataLoader(train_dataset, **dataset_config.get("train_loader", {}))
+    val_loader = DataLoader(val_dataset, **dataset_config.get("val_loader", {}))
+    test_loader = DataLoader(test_dataset, **dataset_config.get("test_loader", {}))
+
+    return {
+        "train": train_loader,
+        "val": val_loader,
+        "test": test_loader
+    }
 
 
 def init_trainer(config: dict[str, Any]) -> L.Trainer:

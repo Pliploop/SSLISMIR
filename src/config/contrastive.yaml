@@ -1,0 +1,140 @@
+# Contrastive Learning Configuration
+# Based on the setup from test.ipynb and src/train.py
+
+# Model wrapper configuration
+__wrapper__: "src.models.training_wrappers.ContrastiveLearning"
+
+# Model configuration
+model:
+  backbone:
+    _name_: "src.models.backbones.VGGish"
+    _kwargs_:
+      proj_dim: 512
+      channels: [128, 256, 512, 1024]
+  
+  projection_head:
+    _name_: "src.models.backbones.MLP"
+    _kwargs_:
+      in_features: 512
+      out_features: 128
+      hidden_features: [512, 512]
+      activation: "relu"
+      use_batch_norm: true
+      dropout: 0.0
+      bias: true
+
+# Loss function configuration
+loss:
+  _name_: "src.utils.losses.NTXent"
+  _kwargs_:
+    temperature: 0.07
+    contrast_mode: "all"
+    base_temperature: 0.07
+
+# Optimizer configuration
+optimizer:
+  _name_: "torch.optim.Adam"
+  _kwargs_:
+    lr: 0.0001
+
+# Scheduler configuration (optional)
+scheduler: null
+# EMA configuration (optional)
+ema: null
+
+# Dataset configuration
+dataset:
+  train:
+    _name_: "src.data.dataset.Giantsteps"
+    _kwargs_:
+      audio_dir: "data/giantsteps/audio"
+      metadata_path: "data/giantsteps/metadata.json"
+      sample_rate: 16000
+      n_samples: 48000
+      mono: true
+      labels_: false
+      processors:
+        - _name_: "src.data.dataset.MultiView"
+          _kwargs_:
+            view_samples: 47999
+            strategy: "random_view"
+            keys: ["audio"]
+        - _name_: "src.data.dataset.MelSpectrogram"
+          _kwargs_:
+            sample_rate: 16000
+            n_fft: 400
+            hop_length: 160
+            n_mels: 128
+            f_min: 50
+            f_max: 8000
+            win_length: null
+            power: 2.0
+            keys: ["view_1", "view_2"]
+  
+  val: ${dataset.train}
+  test: null
+  
+  # DataLoader configuration
+  train_loader:
+    batch_size: 32
+    shuffle: true
+    num_workers: 4
+    collate_fn: "src.data.collate.multiview_collate"
+  
+  val_loader:
+    ${dataset.train_loader}
+
+# Trainer configuration
+trainer:
+  max_epochs: 100
+  devices: [6]
+  accelerator: "gpu"
+  precision: "16-mixed"
+  log_every_n_steps: 100
+  val_check_interval: 1.0
+  gradient_clip_val: 1.0
+  accumulate_grad_batches: 1
+  deterministic: true
+
+# Logger configuration
+logger:
+  _name_: "lightning.pytorch.loggers.WandbLogger"
+  _kwargs_:
+    project: "music-ssl-ismir"
+
+# Callbacks configuration
+callbacks:
+  model_summary:
+    _name_: "lightning.pytorch.callbacks.RichModelSummary"
+    _kwargs_:
+      max_depth: 2
+
+  model_checkpoint:
+    _name_: "lightning.pytorch.callbacks.ModelCheckpoint"
+    _kwargs_:
+      save_last: true
+      monitor: "loss"
+      mode: "min"
+      save_top_k: -1
+      save_on_train_epoch_end: true
+  
+  embedding_viz:
+    _name_: "src.callbacks.viz2d.Embedding2DVisualizationCallback"
+    _kwargs_:
+      every_n_steps: 100
+      reduction_method: "umap"
+      save_dir: "embeddings"
+      tsne_perplexity: 30.0
+      umap_n_neighbors: 15
+      umap_min_dist: 0.1
+  
+  save_embeddings:
+    _name_: "src.callbacks.SaveEmbeddingsCallback"
+    _kwargs_:
+      save_dir: "output_/embeddings"
+
+# Strategy configuration
+strategy: "auto"
+
+# Checkpoint path (optional)
+ckpt_path: null
