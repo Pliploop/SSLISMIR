@@ -120,6 +120,7 @@ def instantiate(name: str, **kwargs) -> Callable:
         The function/class object, optionally partially applied with the provided arguments
     """
     if "." in name:
+        print(f"instantiating {name}")
         module_name, class_or_function_name = name.rsplit(".", 1)
     else:
         raise ValueError(
@@ -152,6 +153,9 @@ def instantiate_from_mapping(mapping: Mapping[str, Any], **kwargs) -> Callable:
     for k, v in mapping_kwargs.items():
         if isinstance(v, dict) and MAPPING_NAME_KEY in v:
             processed_kwargs[k] = instantiate_from_mapping(v)
+        elif isinstance(v, list):
+            processed_kwargs[k] = [instantiate_from_mapping(v_) for v_ in v if isinstance(v_, dict)]
+            processed_kwargs[k] = processed_kwargs[k] + [v_ for v_ in v if not isinstance(v_, dict)]
         else:
             processed_kwargs[k] = v
 
@@ -265,3 +269,111 @@ def merge_configs(config1: dict[str, Any], config2: dict[str, Any]) -> dict[str,
     Merge two dictionaries recursively using OmegaConf.
     """
     return OmegaConf.to_container(OmegaConf.merge(config1, config2))
+
+
+def load_yaml_with_references(config):
+    """
+    Recursively loads YAML references specified with `_yaml_` directives
+    and merges them into the existing OmegaConf configuration without overriding any existing values.
+    """
+
+    if isinstance(config, DictConfig):
+        # Check if the current dictionary contains a `_yaml_` directive
+        if MAPPING_YAML_KEY in config:
+            yaml_info = config[MAPPING_YAML_KEY]
+            yaml_path = yaml_info["_path_"]
+            yaml_key = yaml_info.get("_key_")
+
+            # load yaml to omegaconf
+            is_wandb = "wandb.ai" in yaml_path or "wandb://" in yaml_path
+
+            if "wandb.ai" in yaml_path:
+
+                # Load YAML from WandB artifact
+                import wandb
+                # download the config.yaml from wandb artifact
+                api = wandb.Api()
+                org  = yaml_path.split("/")[3]
+                project = yaml_path.split("/")[4]
+                run_id = yaml_path.split("/")[6]
+                run = api.run(f"{org}/{project}/{run_id}")
+                yaml_file = run.file("config.yaml")
+                ## hash the run name to save
+                yaml_path = os.path.join("wandb", f"{run_id}")
+                if not os.path.exists(os.path.join(yaml_path, "config.yaml")):
+                    print(f"Downloaded YAML from WandB: {yaml_path}")
+                    yaml_file.download(yaml_path, replace=True)
+                yaml_path = os.path.join(yaml_path, "config.yaml")
+
+            loaded_yaml = OmegaConf.load(yaml_path)
+
+
+            # Extract the specified key (support nested keys)
+            if yaml_key:
+                keys = yaml_key.split(".")
+                for key in keys:
+                    loaded_yaml = loaded_yaml[key]
+
+            if is_wandb:
+                loaded_yaml = loaded_yaml.value
+
+            # Convert the loaded YAML to an OmegaConf object
+
+            # Merge the loaded content into the current config
+            # Existing values in `config` take precedence
+            merged_config = OmegaConf.merge(loaded_yaml, config)
+            return merged_config
+
+        # Recursively process nested dictionaries
+        for key in config.keys():
+            config[key] = load_yaml_with_references(config[key])
+        return config
+
+    elif isinstance(config, ListConfig):
+        # Recursively process lists
+        for i in range(len(config)):
+            config[i] = load_yaml_with_references(config[i])
+        return config
+
+    return config
+
+
+def load_weights_from_url(
+    weights_url: str,
+    cache_dir: str = WEIGHTS_DIR,
+    profile: str = None,
+    load_to_memory: bool = True,
+) -> OrderedDict | str:
+    """Download model weights from S3, or HuggingFace and load them.
+
+    Args:
+        weights_url: Path/URL to weights file
+        cache_dir: Directory to cache downloaded weights
+        profile: AWS profile name for S3 downloads
+        load_to_memory: Whether to load the weights into memory
+
+    Returns:
+        The loaded weights
+
+    Raises:
+        ValueError: If weights_url is invalid
+    """
+    if os.path.exists(weights_url):
+        local_path = weights_url
+    elif weights_url.startswith("s3://"):
+        local_path = download_weights_from_cloud_storage(
+            weights_url=weights_url, cache_dir=cache_dir, profile=profile
+        )
+    elif "huggingface.co" in weights_url:
+        # TODO: its gonna be downloaded with all the processes
+        local_path = download_weights_from_huggingface(weights_url=weights_url)
+    else:
+        raise ValueError(f"Invalid weights URL: {weights_url}")
+
+    if load_to_memory:
+        try:
+            return load_weights(local_path)
+        except Exception as e:
+            rank_zero_info(f"Failed to load weights from {local_path}: {e}")
+            raise e
+    return local_path

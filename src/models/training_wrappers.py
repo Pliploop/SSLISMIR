@@ -3,8 +3,8 @@ import lightning as L
 from ema_pytorch.ema_pytorch import EMA
 from typing import Any
 from torch import nn
-from ..utils.utils import instantiate_from_mapping
-from ..utils.utils import build_model
+from utils.utils import instantiate_from_mapping
+from utils.utils import build_model
 
 class BaseWrapper(L.LightningModule):
     def __init__(
@@ -308,4 +308,26 @@ class BarlowTwins(BaseWrapper):
         loss = self.loss(z_1, z_2)
 
         self.log("loss", loss)
+        return loss
+
+class Supervised(BaseWrapper):
+    def __init__(self, backbone: nn.Module, projection_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
+        super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
+
+        
+
+    
+            
+    def training_step(self, batch, batch_idx):
+        audio = batch.get("audio")
+
+        out_ = self.backbone(views)
+        z = out_["z"]
+        g = self.projection_head(z)
+
+        loss = self.loss(g, batch.get("labels"))
         return loss

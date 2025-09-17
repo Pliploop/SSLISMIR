@@ -1,8 +1,6 @@
 import torch
 from torch.utils.data import default_collate
 
-
-
 def multiview_collate(batch):
     """
     Collate function for multiview contrastive learning.

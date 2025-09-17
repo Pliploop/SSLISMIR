@@ -1,6 +1,6 @@
 /data
 /examples
-/test.ipynb
+/actual_test.ipynb
 
 *.pyc
 .vscode

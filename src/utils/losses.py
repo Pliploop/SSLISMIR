@@ -9,13 +9,13 @@ from typing import Dict
 class NTXent(nn.Module):
     
     def __init__(self, temperature=0.07, contrast_mode='all',
-                 base_temperature=0.07):
+                 base_temperature=0.07, supervised=False):
         super().__init__()
         self.temperature = temperature
         self.contrast_mode = contrast_mode
         self.base_temperature = base_temperature
         self.sim_function = nn.CosineSimilarity(2)
-        
+        self.supervised = supervised
     def get_similarities(self, features, temperature = None):
         if temperature is None:
             temperature = self.temperature  
@@ -33,7 +33,7 @@ class NTXent(nn.Module):
         return torch.cat([sims, sims2], dim = 0)
         
     def forward(self,features, target_sims = None):
-        if target_sims is None:
+        if target_sims is None or not self.supervised:
             target_sims = self.get_default_target_sims(features.shape[0])
 
         device = features.device

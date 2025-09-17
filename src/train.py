@@ -5,11 +5,13 @@ import torch
 from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.utilities import rank_zero_info
 import importlib
-from utils import instantiate
+from utils.utils import instantiate
+from torch.utils.data import Dataset
+from typing import Callable
 
-from utils import load_weights_from_url
+from utils.utils import load_weights_from_url
 
-from utils import (
+from utils.utils import (
     instantiate_from_mapping,
     parse_config,
     MAPPING_NAME_KEY,
@@ -18,19 +20,35 @@ from utils import (
 
 from torch.utils.data import DataLoader
 
+def get_dataset(config: dict[str, Any], key: str) -> DataLoader:
+    dataset = config.get(key, None)
+    if dataset is None:
+        return None
+    dataset = instantiate_from_mapping(dataset)
+    return dataset
+
+def get_dataloader_collate_fn(dataset: Dataset, config: dict[str, Any], key: str) -> Callable:
+    loader = config.get(key, None)
+    if loader is None:
+        return None
+    collate_fn = loader.pop("collate_fn", None)
+    print(collate_fn)
+    print(loader)
+    collate_fn = instantiate_from_mapping(collate_fn)
+    return DataLoader(dataset, **loader, collate_fn=collate_fn)
+    
+
 def build_dataloader(config: dict[str, Any]) -> dict[str, DataLoader]:
     dataset_config = config.get("dataset", None)
-    train_dataset = dataset_config.get("train", None)
-    val_dataset = dataset_config.get("val", None)
-    test_dataset = dataset_config.get("test", None)
+    train_dataset = get_dataset(dataset_config, "train")
+    val_dataset = get_dataset(dataset_config, "val")
+    test_dataset = get_dataset(dataset_config, "test")
+
     
-    train_dataset = instantiate_from_mapping(train_dataset)
-    val_dataset = instantiate_from_mapping(val_dataset)
-    test_dataset = instantiate_from_mapping(test_dataset)
-    
-    train_loader = DataLoader(train_dataset, **dataset_config.get("train_loader", {}))
-    val_loader = DataLoader(val_dataset, **dataset_config.get("val_loader", {}))
-    test_loader = DataLoader(test_dataset, **dataset_config.get("test_loader", {}))
+    dataloader_config = config.get('dataloader', None)
+    train_loader = get_dataloader_collate_fn(train_dataset, dataloader_config, "train")
+    val_loader = get_dataloader_collate_fn(val_dataset, dataloader_config, "val")
+    test_loader = get_dataloader_collate_fn(test_dataset, dataloader_config, "test")
 
     return {
         "train": train_loader,
@@ -97,7 +115,7 @@ def main():
         train_loader = loaders.get("train")
         if not train_loader:
             raise ValueError("No training loader found in the configuration.")
-        validation_loaders = loaders.get("validation")
+        validation_loaders = loaders.get("val")
         test_loaders = loaders.get("test")
     else:
         train_loader = loaders
@@ -118,6 +136,8 @@ def main():
         raise e
     finally:
         rank_zero_info("Training finished.")
+
+
 
 
 if __name__ == "__main__":

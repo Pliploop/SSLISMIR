@@ -1,19 +1,17 @@
-# Contrastive Learning Configuration
-# Based on the setup from test.ipynb and src/train.py
 
 # Model wrapper configuration
-__wrapper__: "src.models.training_wrappers.ContrastiveLearning"
+__wrapper__: "models.training_wrappers.ContrastiveLearning"
 
 # Model configuration
 model:
   backbone:
-    _name_: "src.models.backbones.VGGish"
+    _name_: "models.backbones.VGGish"
     _kwargs_:
       proj_dim: 512
-      channels: [128, 256, 512, 1024]
+      channels: [64, 128, 256, 512]
   
   projection_head:
-    _name_: "src.models.backbones.MLP"
+    _name_: "models.backbones.MLP"
     _kwargs_:
       in_features: 512
       out_features: 128
@@ -24,12 +22,17 @@ model:
       bias: true
 
 # Loss function configuration
+# loss:
+#   _name_: "utils.losses.NTXent"
+#   _kwargs_:
+#     contrast_mode: "all"
+#     base_temperature: 0.07
+#     supervised: True
+
 loss:
-  _name_: "src.utils.losses.NTXent"
+  _name_: "utils.losses.InfoNCE"
   _kwargs_:
-    temperature: 0.07
-    contrast_mode: "all"
-    base_temperature: 0.07
+    temperature: 0.05
 
 # Optimizer configuration
 optimizer:
@@ -45,21 +48,24 @@ ema: null
 # Dataset configuration
 dataset:
   train:
-    _name_: "src.data.dataset.Giantsteps"
+    _name_: "data.dataset.Giantsteps"
     _kwargs_:
       audio_dir: "data/giantsteps/audio"
       metadata_path: "data/giantsteps/metadata.json"
       sample_rate: 16000
-      n_samples: 48000
       mono: true
       labels_: false
       processors:
-        - _name_: "src.data.dataset.MultiView"
+        - _name_: "data.dataset.MultiView"
           _kwargs_:
             view_samples: 47999
             strategy: "random_view"
             keys: ["audio"]
-        - _name_: "src.data.dataset.MelSpectrogram"
+        - _name_: "data.dataset.Truncate"
+          _kwargs_:
+            n_samples: 47999
+            keys: ["audio"]
+        - _name_: "data.dataset.MelSpectrogram"
           _kwargs_:
             sample_rate: 16000
             n_fft: 400
@@ -69,32 +75,68 @@ dataset:
             f_max: 8000
             win_length: null
             power: 2.0
-            keys: ["view_1", "view_2"]
+            keys: ["view_1", "view_2", "audio"]
   
-  val: ${dataset.train}
+  val: 
+    _name_: "data.dataset.Giantsteps"
+    _kwargs_:
+      audio_dir: "data/giantsteps/audio"
+      metadata_path: "data/giantsteps/metadata.json"
+      sample_rate: 16000
+      mono: true
+      labels_: True
+      processors:
+        - _name_: "data.dataset.MultiView"
+          _kwargs_:
+            view_samples: 47999
+            strategy: "random_view"
+            keys: ["audio"]
+        
+        - _name_: "data.dataset.Truncate"
+          _kwargs_:
+            n_samples: 47999
+            keys: ["audio"]
+        - _name_: "data.dataset.MelSpectrogram"
+          _kwargs_:
+            sample_rate: 16000
+            n_fft: 400
+            hop_length: 160
+            n_mels: 128
+            f_min: 50
+            f_max: 8000
+            win_length: null
+            power: 2.0
+            keys: ["view_1", "view_2", "audio"]
+
   test: null
   
-  # DataLoader configuration
-  train_loader:
+dataloader:
+  train:
     batch_size: 32
     shuffle: true
-    num_workers: 4
-    collate_fn: "src.data.collate.multiview_collate"
-  
-  val_loader:
-    ${dataset.train_loader}
+    num_workers: 8
+    collate_fn:
+      _name_: "data.collate.multiview_collate"
+  val:
+    batch_size: 32
+    shuffle: false
+    num_workers: 8
+    collate_fn:
+      _name_: "data.collate.multiview_collate"
+  test: null
 
 # Trainer configuration
 trainer:
-  max_epochs: 100
-  devices: [6]
+  max_epochs: 1000
+  devices: [1]
   accelerator: "gpu"
   precision: "16-mixed"
   log_every_n_steps: 100
-  val_check_interval: 1.0
+  check_val_every_n_epoch: 10
   gradient_clip_val: 1.0
   accumulate_grad_batches: 1
   deterministic: true
+  num_sanity_val_steps: 0
 
 # Logger configuration
 logger:
@@ -109,6 +151,7 @@ callbacks:
     _kwargs_:
       max_depth: 2
 
+
   model_checkpoint:
     _name_: "lightning.pytorch.callbacks.ModelCheckpoint"
     _kwargs_:
@@ -116,22 +159,26 @@ callbacks:
       monitor: "loss"
       mode: "min"
       save_top_k: -1
-      save_on_train_epoch_end: true
+      every_n_epochs: 20
   
   embedding_viz:
-    _name_: "src.callbacks.viz2d.Embedding2DVisualizationCallback"
+    _name_: "callbacks.viz2d.Embedding2DVisualizationCallback"
     _kwargs_:
-      every_n_steps: 100
-      reduction_method: "umap"
-      save_dir: "embeddings"
+      every_n_epochs: 20
+      reduction_method: "tsne"
       tsne_perplexity: 30.0
       umap_n_neighbors: 15
       umap_min_dist: 0.1
-  
-  save_embeddings:
-    _name_: "src.callbacks.SaveEmbeddingsCallback"
+
+  linear_probe:
+    _name_: "callbacks.viz2d.LinearProbeCallback"
     _kwargs_:
-      save_dir: "output_/embeddings"
+      model_type: "mlp"
+      hidden_layer_sizes: [256]
+      activation: "relu"
+      solver: "adam"
+      max_iter: 5000
+      validation_fraction: 0
 
 # Strategy configuration
 strategy: "auto"

@@ -4,9 +4,16 @@ import numpy as np
 from typing import Optional, List, Dict, Any
 from lightning.pytorch import Callback
 import wandb
+import matplotlib.pyplot as plt
+import librosa
+import librosa.display
+import seaborn as sns
+from sklearn.manifold import TSNE
+from umap import UMAP
+import torch.nn.functional as F
 
-from ..utils.viz import (
-    compute_tsne, compute_umap, create_matplotlib_scatter, 
+from utils.viz import (
+    create_matplotlib_scatter, 
     create_plotly_scatter, embeddings_to_numpy, labels_to_numpy
 )
 
@@ -21,12 +28,13 @@ class Embedding2DVisualizationCallback(Callback):
     
     def __init__(
         self,
-        every_n_steps: int = 100,
+        every_n_epochs: int = 1,    
         reduction_method: str = "umap",
         tsne_perplexity: float = 30.0,
         umap_n_neighbors: int = 15,
         umap_min_dist: float = 0.1,
-        random_state: int = 42
+        random_state: int = 42,
+        **kwargs
     ):
         """
         Initialize the callback.
@@ -41,22 +49,37 @@ class Embedding2DVisualizationCallback(Callback):
             umap_min_dist: UMAP min_dist parameter
             random_state: Random seed for reproducibility
         """
+        ## init super without kwargs (Callback doesn't accept them)
         super().__init__()
-        
+
         if reduction_method not in ["umap", "tsne"]:
             raise ValueError(f"reduction_method must be 'umap' or 'tsne', got {reduction_method}")
         
-        self.every_n_steps = every_n_steps
+        self.every_n_epochs = every_n_epochs
         self.reduction_method = reduction_method
         self.tsne_perplexity = tsne_perplexity
         self.umap_n_neighbors = umap_n_neighbors
         self.umap_min_dist = umap_min_dist
         self.random_state = random_state
+
+        if self.reduction_method == "tsne":
+            self.reducer = TSNE(
+                perplexity=self.tsne_perplexity,
+                random_state=self.random_state
+            )
+        else:
+            self.reducer = UMAP(
+                n_neighbors=self.umap_n_neighbors,
+                min_dist=self.umap_min_dist,
+                random_state=self.random_state
+            )
+
+        self.reducer_fitted = False
         
         # Initialize embedding and label caches
-        self.embedding_cache: List[torch.Tensor] = []
-        self.label_cache: List[torch.Tensor] = []
-        self.step_count = 0
+        self.embedding_cache = []
+        self.label_cache = []
+        
     
     def on_validation_batch_end(
         self, 
@@ -67,11 +90,14 @@ class Embedding2DVisualizationCallback(Callback):
         batch_idx: int
     ) -> None:
         """Extract embeddings from validation batch."""
-        self._extract_embeddings(pl_module, batch, "val")
+        if trainer.current_epoch % self.every_n_epochs == 0:
+            self._extract_embeddings(pl_module, batch, "val")
     
     def on_validation_epoch_end(self, trainer, pl_module) -> None:
         """Compute reduction and log at end of validation epoch."""
-        if len(self.embedding_cache) > 0:
+
+        
+        if len(self.embedding_cache) > 0 and trainer.current_epoch % self.every_n_epochs == 0:
             self._compute_reduction_and_log(trainer, "val", trainer.current_epoch)
             self._reset_cache()
     
@@ -89,15 +115,18 @@ class Embedding2DVisualizationCallback(Callback):
         clean_data = batch["audio"]
         
         # Extract labels if available
-        labels = batch.get("label_", None)
+        labels = batch.get("name", None)
         
         # Set model to eval mode and disable gradients
         embeddings = pl_module.backbone(clean_data)["z"]
+        embeddings = pl_module.projection_head(embeddings)
+        # normalize the embeddings
+        embeddings = F.normalize(embeddings, p=2, dim=1)
         
         # Add to cache
-        self.embedding_cache.append(embeddings.detach())
+        self.embedding_cache.append(embeddings.detach().cpu())
         if labels is not None:
-            self.label_cache.append(labels.detach())
+            self.label_cache += labels[:embeddings.shape[0]]
         
     def _compute_reduction_and_log(self, trainer, stage: str, step_or_epoch: int) -> None:
         """
@@ -113,22 +142,10 @@ class Embedding2DVisualizationCallback(Callback):
         
         # Convert embeddings and labels to numpy
         embeddings_np = embeddings_to_numpy(self.embedding_cache)
-        labels_np = labels_to_numpy(self.label_cache) if self.label_cache else None
+        labels_np = self.label_cache
+
+        reduced_embeddings = self.reducer.fit_transform(embeddings_np)
         
-        # Compute dimensionality reduction
-        if self.reduction_method == "tsne":
-            reduced_embeddings = compute_tsne(
-                embeddings_np, 
-                perplexity=self.tsne_perplexity,
-                random_state=self.random_state
-            )
-        else:  # umap
-            reduced_embeddings = compute_umap(
-                embeddings_np,
-                n_neighbors=self.umap_n_neighbors,
-                min_dist=self.umap_min_dist,
-                random_state=self.random_state
-            )
         
         # Create visualizations
         title = f"{stage.capitalize()} Embeddings - {self.reduction_method.upper()}"
@@ -260,3 +277,78 @@ class SaveEmbeddingsCallback(Callback):
 
         # Reset cache after saving
         self._reset_cache()
+
+
+class LinearProbeCallback(Callback):
+    """
+    Callback to fit a linear multiclass logistic regression on the embeddings.
+    """
+    def __init__(self, model_type: str = "logistic", **kwargs):
+        super().__init__()
+        self.kwargs = kwargs
+        self.model_type = model_type
+        self.reset_model()
+        self._reset_cache()
+
+    def reset_model(self):
+
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.neural_network import MLPClassifier
+        self.model = LogisticRegression() if self.model_type == "logistic" else MLPClassifier(**self.kwargs)
+
+    def _reset_cache(self):
+        """Reset the embedding and label caches."""
+        self.embedding_cache = []
+        self.label_cache = []
+
+    def on_validation_batch_end(self, trainer, pl_module, outputs, batch, batch_idx, dataloader_idx=0):
+        # Assume batch contains: "file_path", "label", and the model returns embeddings in outputs
+        # outputs: the output of pl_module.validation_step
+        # batch: the batch dict from the dataloader
+
+        # Get embeddings from outputs or batch
+        # Try to support both dict and tensor outputs
+        # Extract clean data
+        clean_data = batch["audio"]
+        
+        # Extract labels if available
+        labels = batch.get("name", None)
+        
+        # Set model to eval mode and disable gradients
+        embeddings = pl_module.backbone(clean_data)["z"]
+        embeddings = pl_module.projection_head(embeddings)
+
+        # Detach embeddings and move to cpu
+        embeddings = embeddings.detach().cpu()
+
+        # Save to cache for epoch end
+        self.embedding_cache.append(embeddings)
+        if labels is not None:
+            self.label_cache.append(labels)
+
+    def on_validation_epoch_end(self, trainer, pl_module):
+        # Concatenate all cached embeddings and labels
+        embeddings = torch.cat(self.embedding_cache, dim=0)
+        labels = None
+        if self.label_cache:
+            # Flatten list of lists
+            labels = [item for sublist in self.label_cache for item in (sublist if isinstance(sublist, (list, tuple)) else [sublist])]
+        
+        # Fit the model
+        print(f"Fitting model with {embeddings.shape[0]} embeddings and {len(labels)} labels")
+        self.model.fit(embeddings, labels)
+        
+        # score the model
+        score = self.model.score(embeddings, labels)
+        
+        # Log the score
+        trainer.logger.experiment.log({
+            "linear_probe_score": score
+        })
+
+        # reset the model
+        self.reset_model()
+        
+        # Reset cache after fitting
+        self._reset_cache()
+

@@ -25,13 +25,15 @@ for key_file in key_files:
     with open(os.path.join(key_folder, key_file), 'r') as f:
         key = f.read().strip()
     audio_file = os.path.join(audio_folder, key_file.replace('.txt', '.mp3'))
-    metadata.append({
-        'key': key,
-        'file_path': audio_file
-    })
+    if 'minor' in key or 'major' in key:
+        metadata.append({
+            'key': key,
+            'simplified_key': ' '.join(key.split(' ')[:2]),
+            'file_path': audio_file
+        })
 
 ## key to numerical label with pandas
 df = pd.DataFrame(metadata)
 
-df['label_id'] = df.key.astype('category').cat.codes
+df['label_id'] = df.simplified_key.astype('category').cat.codes
 df.to_json(os.path.join(DATA_HOME, 'metadata.json'), orient='records')

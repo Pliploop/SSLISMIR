@@ -14,44 +14,6 @@ import librosa.display
 
 
 
-def compute_tsne(embeddings: np.ndarray, n_components: int = 2, 
-                 perplexity: float = 30.0, random_state: int = 42) -> np.ndarray:
-    """
-    Compute T-SNE reduction of embeddings.
-    
-    Args:
-        embeddings: Input embeddings array of shape (n_samples, n_features)
-        n_components: Number of components for reduction
-        perplexity: T-SNE perplexity parameter
-        random_state: Random seed for reproducibility
-        
-    Returns:
-        Reduced embeddings array of shape (n_samples, n_components)
-    """
-    tsne = TSNE(n_components=n_components, perplexity=perplexity, 
-                random_state=random_state, n_jobs=-1)
-    return tsne.fit_transform(embeddings)
-
-
-def compute_umap(embeddings: np.ndarray, n_components: int = 2,
-                 n_neighbors: int = 15, min_dist: float = 0.1,
-                 random_state: int = 42) -> np.ndarray:
-    """
-    Compute UMAP reduction of embeddings.
-    
-    Args:
-        embeddings: Input embeddings array of shape (n_samples, n_features)
-        n_components: Number of components for reduction
-        n_neighbors: Number of neighbors for UMAP
-        min_dist: Minimum distance between points
-        random_state: Random seed for reproducibility
-        
-    Returns:
-        Reduced embeddings array of shape (n_samples, n_components)
-    """
-    reducer = umap.UMAP(n_components=n_components, n_neighbors=n_neighbors,
-                       min_dist=min_dist, random_state=random_state)
-    return reducer.fit_transform(embeddings)
 
 
 def create_matplotlib_scatter(reduced_embeddings: np.ndarray, 
