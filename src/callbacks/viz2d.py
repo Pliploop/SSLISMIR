@@ -12,10 +12,16 @@ from sklearn.manifold import TSNE
 from umap import UMAP
 import torch.nn.functional as F
 
-from utils.viz import (
-    create_matplotlib_scatter, 
-    create_plotly_scatter, embeddings_to_numpy, labels_to_numpy
-)
+try:
+    from utils.viz import (
+            create_matplotlib_scatter, 
+            create_plotly_scatter, embeddings_to_numpy, labels_to_numpy
+        )
+except ImportError: # notebook
+    from src.utils.viz import (
+        create_matplotlib_scatter, 
+        create_plotly_scatter, embeddings_to_numpy, labels_to_numpy
+    )
 
 
 class Embedding2DVisualizationCallback(Callback):
@@ -335,6 +341,8 @@ class LinearProbeCallback(Callback):
             labels = [item for sublist in self.label_cache for item in (sublist if isinstance(sublist, (list, tuple)) else [sublist])]
         
         # Fit the model
+        print(embeddings[0])
+        print(labels)
         print(f"Fitting model with {embeddings.shape[0]} embeddings and {len(labels)} labels")
         self.model.fit(embeddings, labels)
         

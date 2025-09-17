@@ -3,8 +3,15 @@ import lightning as L
 from ema_pytorch.ema_pytorch import EMA
 from typing import Any
 from torch import nn
-from utils.utils import instantiate_from_mapping
-from utils.utils import build_model
+
+try:
+    from utils.utils import instantiate_from_mapping
+    from utils.utils import build_model
+except ImportError: # notebook
+    from src.utils.utils import instantiate_from_mapping
+    from src.utils.utils import build_model
+    
+    
 
 class BaseWrapper(L.LightningModule):
     def __init__(
