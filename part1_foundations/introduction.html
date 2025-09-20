@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>1. Introduction &#8212; Self-Supervised Learning for Music Information Retrieval</title>
+    <title>Introduction &#8212; Self-Supervised Learning for Music Information Retrieval</title>
   
   
   
@@ -60,7 +60,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'part1_foundations/introduction';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="2. Deep Learning Basics Refresher" href="deep_learning_basics.html" />
+    <link rel="next" title="Deep Learning Basics Refresher" href="deep_learning_basics.html" />
     <link rel="prev" title="Self-Supervised Learning for Music Information Retrieval" href="../intro.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
@@ -175,9 +175,9 @@
         </ul>
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 1: Foundations</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">1. Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_learning_basics.html">2. Deep Learning Basics Refresher</a></li>
-<li class="toctree-l1"><a class="reference internal" href="core_ideas_ssl.html">3. Core Ideas in SSL</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_learning_basics.html">Deep Learning Basics Refresher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="core_ideas_ssl.html">Core Ideas in SSL</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 2: Joint Embedding Architectures (JEA)</span></p>
 <ul class="nav bd-sidenav">
@@ -400,7 +400,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>1. Introduction</h1>
+    <h1>Introduction</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -412,9 +412,7 @@ document.write(`
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-self-supervised-learning-ssl">What is Self-Supervised Learning (SSL)?</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#why-ssl-matters-for-music-information-retrieval-mir">Why SSL matters for Music Information Retrieval (MIR)</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#historical-context-supervised-unsupervised-ssl">Historical context: supervised → unsupervised → SSL</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of tutorial structure and code environment</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the speakers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#historical-context-supervised-unsupervised-ssl">Historical Context: Supervised → Unsupervised → SSL</a></li>
 </ul>
             </nav>
         </div>
@@ -427,26 +425,67 @@ document.write(`
                 <article class="bd-article">
                   
   <section class="tex2jax_ignore mathjax_ignore" id="introduction">
-<h1>1. Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h1>
+<h1>Introduction<a class="headerlink" href="#introduction" title="Link to this heading">#</a></h1>
 <section id="what-is-self-supervised-learning-ssl">
 <h2>What is Self-Supervised Learning (SSL)?<a class="headerlink" href="#what-is-self-supervised-learning-ssl" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Definition and core concepts of SSL</em></p>
+<p>Self-Supervised Learning (SSL) is a paradigm where the <strong>supervision signal is derived from the data itself rather than human-annotated labels</strong>.<br />
+Instead of requiring costly ground-truth annotations, SSL leverages intrinsic structures, correlations, or predictive tasks within the data.</p>
+<p>The core idea is to define a <strong>pretext task</strong> — such as predicting masked input features, distinguishing between augmented views of the same data, or aligning multimodal representations. By solving these tasks, models learn <strong>general-purpose representations</strong> that can be transferred to a wide range of downstream tasks.</p>
+<p>For example, in the audio domain, SSL approaches may:</p>
+<ul class="simple">
+<li><p>Predict missing parts of a waveform or spectrogram (masked modeling)</p></li>
+<li><p>Align embeddings of different audio segments from the same track (contrastive learning)</p></li>
+<li><p>Learn equivariant features by enforcing consistency under pitch or tempo transformations</p></li>
+</ul>
+<p>This approach has become the foundation of many modern <strong>foundation models</strong> across vision, language, and audio <span id="id1">[]</span>.</p>
+<p><img alt="Placeholder: Diagram contrasting supervised vs. self-supervised learning pipelines" src="part1_foundations/path/to/placeholder_supervised_vs_ssl.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="why-ssl-matters-for-music-information-retrieval-mir">
 <h2>Why SSL matters for Music Information Retrieval (MIR)<a class="headerlink" href="#why-ssl-matters-for-music-information-retrieval-mir" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Motivation and benefits of SSL for music</em></p>
+<p>Supervised learning has driven much of the progress in MIR, but it comes with important limitations:</p>
+<ul class="simple">
+<li><p><strong>Annotation cost</strong>: Datasets require large-scale manual labeling, which is expensive and time-consuming. In music, this often requires expert annotators.</p></li>
+<li><p><strong>Ambiguity and subjectivity</strong>: Labels such as genre, mood, or timbre are often ill-defined, context-dependent, and culturally specific.</p></li>
+<li><p><strong>Task-specific narrowness</strong>: Models trained for one task (e.g., instrument classification) may not generalize to others (e.g., similarity retrieval).</p></li>
+</ul>
+<p>SSL addresses these challenges by:</p>
+<ul class="simple">
+<li><p><strong>Reducing dependence on labels</strong>: Large collections of unlabeled music (streaming platforms, user uploads) can be directly leveraged.</p></li>
+<li><p><strong>Scalability</strong>: Models can be trained at web scale, similar to language and vision.</p></li>
+<li><p><strong>Robustness</strong>: Learned features tend to generalize better across tasks and datasets.</p></li>
+<li><p><strong>Transferability</strong>: A single SSL-pretrained model can be adapted to multiple MIR tasks, from classification and tagging to generation <span id="id2">[]</span>.</p></li>
+</ul>
+<p>This makes SSL particularly appealing for music, where annotated datasets are small compared to other domains, and the richness of musical concepts demands flexible, semantically aware representations.</p>
+<p><img alt="Placeholder: Illustration of challenges in music annotation (genre ambiguity, subjective labels, high cost)" src="part1_foundations/path/to/placeholder_labeling_challenges.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="historical-context-supervised-unsupervised-ssl">
-<h2>Historical context: supervised → unsupervised → SSL<a class="headerlink" href="#historical-context-supervised-unsupervised-ssl" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Evolution of learning paradigms</em></p>
-</section>
-<section id="overview-of-tutorial-structure-and-code-environment">
-<h2>Overview of tutorial structure and code environment<a class="headerlink" href="#overview-of-tutorial-structure-and-code-environment" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Guide to the tutorial structure</em></p>
-</section>
-<section id="meet-the-speakers">
-<h2>Meet the speakers<a class="headerlink" href="#meet-the-speakers" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Information about tutorial authors</em></p>
+<h2>Historical Context: Supervised → Unsupervised → SSL<a class="headerlink" href="#historical-context-supervised-unsupervised-ssl" title="Link to this heading">#</a></h2>
+<p>The rise of SSL can be understood in the broader trajectory of machine learning paradigms:</p>
+<ol class="arabic simple">
+<li><p><strong>Supervised learning (2010s)</strong></p>
+<ul class="simple">
+<li><p>Dominant with large annotated corpora such as ImageNet in vision.</p></li>
+<li><p>In audio/MIR, relied on curated datasets for tasks like classification or tagging.</p></li>
+<li><p>Limitations: annotation bottlenecks, lack of generalization <span id="id3">[]</span>.</p></li>
+</ul>
+</li>
+<li><p><strong>Unsupervised learning (early 2010s)</strong></p>
+<ul class="simple">
+<li><p>Explored feature learning without labels: e.g., autoencoders, clustering, word2vec.</p></li>
+<li><p>Promising but often unstable or limited in scalability.</p></li>
+</ul>
+</li>
+<li><p><strong>Self-Supervised Learning (2018 onwards)</strong></p>
+<ul class="simple">
+<li><p>Breakthrough with <strong>BERT</strong> in NLP <span id="id4">[]</span>, <strong>SimCLR/InfoNCE</strong> in vision <span id="id5">[]</span>, and <strong>wav2vec/HuBERT</strong> in audio <span id="id6">[]</span>.</p></li>
+<li><p>SSL is now the <strong>default pretraining paradigm</strong> behind many foundation models in language, vision, audio, and multimodal domains.</p></li>
+</ul>
+</li>
+</ol>
+<p>In MIR, this paradigm shift allows us to build models that better capture the <strong>semantics of music</strong> without requiring exhaustive labeling, opening up possibilities for large-scale pretraining and domain-specific adaptation <span id="id7">[]</span>.</p>
+<p><img alt="Placeholder: Timeline showing shift from supervised → unsupervised → self-supervised across domains (vision, language, audio)" src="part1_foundations/path/to/placeholder_learning_timeline.png" /></p>
 <hr class="docutils" />
 <p><em>Next: <a class="reference internal" href="deep_learning_basics.html"><span class="std std-doc">Deep Learning Basics Refresher</span></a></em></p>
 </section>
@@ -496,7 +535,7 @@ document.write(`
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">2. Deep Learning Basics Refresher</p>
+        <p class="prev-next-title">Deep Learning Basics Refresher</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -518,9 +557,7 @@ document.write(`
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-is-self-supervised-learning-ssl">What is Self-Supervised Learning (SSL)?</a></li>
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#why-ssl-matters-for-music-information-retrieval-mir">Why SSL matters for Music Information Retrieval (MIR)</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#historical-context-supervised-unsupervised-ssl">Historical context: supervised → unsupervised → SSL</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of tutorial structure and code environment</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the speakers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#historical-context-supervised-unsupervised-ssl">Historical Context: Supervised → Unsupervised → SSL</a></li>
 </ul>
   </nav></div>
 

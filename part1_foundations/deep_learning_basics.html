@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>2. Deep Learning Basics Refresher &#8212; Self-Supervised Learning for Music Information Retrieval</title>
+    <title>Deep Learning Basics Refresher &#8212; Self-Supervised Learning for Music Information Retrieval</title>
   
   
   
@@ -60,8 +60,8 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'part1_foundations/deep_learning_basics';</script>
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
-    <link rel="next" title="3. Core Ideas in SSL" href="core_ideas_ssl.html" />
-    <link rel="prev" title="1. Introduction" href="introduction.html" />
+    <link rel="next" title="Core Ideas in SSL" href="core_ideas_ssl.html" />
+    <link rel="prev" title="Introduction" href="introduction.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -175,9 +175,9 @@
         </ul>
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 1: Foundations</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">2. Deep Learning Basics Refresher</a></li>
-<li class="toctree-l1"><a class="reference internal" href="core_ideas_ssl.html">3. Core Ideas in SSL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Deep Learning Basics Refresher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="core_ideas_ssl.html">Core Ideas in SSL</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 2: Joint Embedding Architectures (JEA)</span></p>
 <ul class="nav bd-sidenav">
@@ -400,7 +400,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>2. Deep Learning Basics Refresher</h1>
+    <h1>Deep Learning Basics Refresher</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -410,9 +410,9 @@ document.write(`
             </div>
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neural-networks-data-representation-prediction">Neural networks: data → representation → prediction</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supervised-learning-definitions-tasks-and-limitations">Supervised learning: definitions, tasks, and limitations</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-issues-of-labeling-in-music-ambiguity-subjectivity-cost">The issues of labeling in music (ambiguity, subjectivity, cost)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neural-networks-data-representation-prediction">Neural Networks: Data → Representation → Prediction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supervised-learning-definitions-tasks-and-limitations">Supervised Learning: Definitions, Tasks, and Limitations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-issues-of-labeling-in-music">The Issues of Labeling in Music</a></li>
 </ul>
             </nav>
         </div>
@@ -425,18 +425,26 @@ document.write(`
                 <article class="bd-article">
                   
   <section class="tex2jax_ignore mathjax_ignore" id="deep-learning-basics-refresher">
-<h1>2. Deep Learning Basics Refresher<a class="headerlink" href="#deep-learning-basics-refresher" title="Link to this heading">#</a></h1>
+<h1>Deep Learning Basics Refresher<a class="headerlink" href="#deep-learning-basics-refresher" title="Link to this heading">#</a></h1>
 <section id="neural-networks-data-representation-prediction">
-<h2>Neural networks: data → representation → prediction<a class="headerlink" href="#neural-networks-data-representation-prediction" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Basic neural network concepts</em></p>
+<h2>Neural Networks: Data → Representation → Prediction<a class="headerlink" href="#neural-networks-data-representation-prediction" title="Link to this heading">#</a></h2>
+<p>At the heart of deep learning are <strong>neural networks</strong>, which can be thought of as layered systems that transform raw input data into useful representations and predictions. When we feed an input—say a music spectrogram—into a network, the first layers capture low-level patterns such as frequency content or energy. As information flows through deeper layers, the network extracts progressively more abstract concepts, like rhythmic structure, timbral qualities, or harmonic relationships. Finally, the output layer translates these internal representations into predictions for a given task, such as classifying the genre of a track or identifying the instrument being played.</p>
+<p>Training a neural network requires optimizing its parameters so that the predictions align with expected outcomes. This is done by defining a <strong>loss function</strong>—for example, cross-entropy for classification or mean squared error for regression—that measures the discrepancy between predicted and true values. Through the process of <strong>backpropagation</strong>, the network iteratively adjusts its weights to reduce this error, gradually improving its ability to model the input-output relationship.</p>
+<p><img alt="Placeholder: Diagram of a neural network from input → hidden layers → output" src="part1_foundations/path/to/placeholder_neural_network.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="supervised-learning-definitions-tasks-and-limitations">
-<h2>Supervised learning: definitions, tasks, and limitations<a class="headerlink" href="#supervised-learning-definitions-tasks-and-limitations" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Overview of supervised learning</em></p>
+<h2>Supervised Learning: Definitions, Tasks, and Limitations<a class="headerlink" href="#supervised-learning-definitions-tasks-and-limitations" title="Link to this heading">#</a></h2>
+<p>Most early applications of deep learning in Music Information Retrieval (MIR) relied on <strong>supervised learning</strong>, where models are trained using input–label pairs. For example, a dataset might contain thousands of audio clips annotated with genres, instruments, or chord labels, and the goal of the network is to learn a mapping from the audio signal to these categorical outputs. In this setting, the presence of labeled data is essential: without it, the model cannot learn what “counts” as a correct prediction.</p>
+<p>Supervised approaches have led to notable advances in MIR, enabling systems to classify songs by genre, recognize chord sequences, or identify instruments. However, they also reveal important limitations. Because each model is trained for a specific task, the learned representations are often <strong>narrow and task-dependent</strong>, making it difficult to transfer them to new settings. More importantly, the requirement for large amounts of labeled data creates a bottleneck: collecting and annotating such datasets is expensive, time-consuming, and often impractical in domains as complex as music <span id="id1">[]</span>.</p>
+<p><img alt="Placeholder: Diagram of supervised learning pipeline with ground truth labels" src="part1_foundations/path/to/placeholder_supervised_pipeline.png" /></p>
 </section>
-<section id="the-issues-of-labeling-in-music-ambiguity-subjectivity-cost">
-<h2>The issues of labeling in music (ambiguity, subjectivity, cost)<a class="headerlink" href="#the-issues-of-labeling-in-music-ambiguity-subjectivity-cost" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Challenges specific to music annotation</em></p>
+<hr class="docutils" />
+<section id="the-issues-of-labeling-in-music">
+<h2>The Issues of Labeling in Music<a class="headerlink" href="#the-issues-of-labeling-in-music" title="Link to this heading">#</a></h2>
+<p>These limitations become even more apparent when considering the particular challenges of annotation in music. Creating large, high-quality labeled datasets requires significant expertise: for example, annotating chord progressions or transcribing polyphonic passages is a task that demands trained musicians. Even simpler labeling efforts, such as genre classification, are fraught with ambiguity—does a track belong to <em>trip-hop</em> or <em>lo-fi hip-hop</em>, and who decides where the boundary lies?</p>
+<p>Beyond cost and ambiguity, labels in music are also subject to <strong>subjectivity</strong>. Descriptions of mood, emotion, or aesthetic quality are not only difficult to formalize but can vary drastically depending on the annotator’s background or cultural context. This introduces biases and inconsistencies into datasets, further limiting their usefulness for supervised training. As a result, while supervised learning has driven many successes in MIR, it struggles to scale in a way that reflects the richness and diversity of music <span id="id2">[]</span>.</p>
+<p><img alt="Placeholder: Illustration of annotation challenges in music (genre ambiguity, mood subjectivity, annotation cost)" src="part1_foundations/path/to/placeholder_labeling_challenges.png" /></p>
 <hr class="docutils" />
 <p><em>Next: <a class="reference internal" href="core_ideas_ssl.html"><span class="std std-doc">Core Ideas in SSL</span></a></em></p>
 </section>
@@ -478,7 +486,7 @@ document.write(`
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">1. Introduction</p>
+        <p class="prev-next-title">Introduction</p>
       </div>
     </a>
     <a class="right-next"
@@ -486,7 +494,7 @@ document.write(`
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">3. Core Ideas in SSL</p>
+        <p class="prev-next-title">Core Ideas in SSL</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -506,9 +514,9 @@ document.write(`
   </div>
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neural-networks-data-representation-prediction">Neural networks: data → representation → prediction</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supervised-learning-definitions-tasks-and-limitations">Supervised learning: definitions, tasks, and limitations</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-issues-of-labeling-in-music-ambiguity-subjectivity-cost">The issues of labeling in music (ambiguity, subjectivity, cost)</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#neural-networks-data-representation-prediction">Neural Networks: Data → Representation → Prediction</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#supervised-learning-definitions-tasks-and-limitations">Supervised Learning: Definitions, Tasks, and Limitations</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#the-issues-of-labeling-in-music">The Issues of Labeling in Music</a></li>
 </ul>
   </nav></div>
 

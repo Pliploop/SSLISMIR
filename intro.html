@@ -60,7 +60,7 @@
     <script>DOCUMENTATION_OPTIONS.pagename = 'intro';</script>
     <link rel="index" title="Index" href="genindex.html" />
     <link rel="search" title="Search" href="search.html" />
-    <link rel="next" title="1. Introduction" href="part1_foundations/introduction.html" />
+    <link rel="next" title="Introduction" href="part1_foundations/introduction.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -176,9 +176,9 @@
         </ul>
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 1: Foundations</span></p>
 <ul class="nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="part1_foundations/introduction.html">1. Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="part1_foundations/deep_learning_basics.html">2. Deep Learning Basics Refresher</a></li>
-<li class="toctree-l1"><a class="reference internal" href="part1_foundations/core_ideas_ssl.html">3. Core Ideas in SSL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part1_foundations/introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part1_foundations/deep_learning_basics.html">Deep Learning Basics Refresher</a></li>
+<li class="toctree-l1"><a class="reference internal" href="part1_foundations/core_ideas_ssl.html">Core Ideas in SSL</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 2: Joint Embedding Architectures (JEA)</span></p>
 <ul class="nav bd-sidenav">
@@ -412,8 +412,16 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-you-ll-learn">What You’ll Learn</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of tutorial structure and code environment</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the speakers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of Tutorial Structure and Code Environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the Speakers</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#julien-guinot">Julien Guinot</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#alain-riou">Alain Riou</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#yuexuan-kong">Yuexuan Kong</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#marco-pasini">Marco Pasini</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gabriel-meseguer-brocal">Gabriel Meseguer-Brocal</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stefan-lattner">Stefan Lattner</a></li>
+</ul>
+</li>
 </ul>
             </nav>
         </div>
@@ -442,12 +450,62 @@ document.write(`
 </ul>
 </section>
 <section id="overview-of-tutorial-structure-and-code-environment">
-<h2>Overview of tutorial structure and code environment<a class="headerlink" href="#overview-of-tutorial-structure-and-code-environment" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Guide to the tutorial structure</em></p>
+<h2>Overview of Tutorial Structure and Code Environment<a class="headerlink" href="#overview-of-tutorial-structure-and-code-environment" title="Link to this heading">#</a></h2>
+<p>This tutorial is organized as a <strong>Jupyter Book</strong>, with chapters covering the main paradigms of SSL in MIR.<br />
+Each chapter combines conceptual explanations, references to state-of-the-art works, and practical sessions with runnable code examples.<br />
+Where relevant, we provide <strong>placeholder figures</strong> and code templates that will be progressively filled in during the hands-on sessions.</p>
+<p>You can navigate the tutorial as follows:</p>
+<ul class="simple">
+<li><p><strong>Chapter 1: Foundations</strong> – A refresher on deep learning and the motivation for self-supervision</p></li>
+<li><p><strong>Chapter 2: Joint Embedding Architectures (JEA)</strong> – Contrastive learning, BYOL, VICReg, and their applications to music</p></li>
+<li><p><strong>Chapter 3: Masked Modeling &amp; JEPA</strong> – Masked autoencoders, JEPA, and predictive approaches</p></li>
+<li><p><strong>Chapter 4: Equivariant SSL</strong> – Learning from musical transformations such as pitch shifting and key transposition</p></li>
+<li><p><strong>Chapter 5: Generative SSL</strong> – Exploring the interaction between representation learning and generative models</p></li>
+<li><p><strong>Chapter 6: Wrapping Up</strong> – Evaluating SSL representations and summarizing future challenges</p></li>
+<li><p><strong>Chapter 7: Appendices</strong> – Practical setup instructions and additional references</p></li>
+</ul>
+<blockquote>
+<div><p><strong>Note:</strong> All code will be provided in pre-prepared notebooks. Make sure to install the listed dependencies before attempting the hands-on parts.</p>
+</div></blockquote>
 </section>
+<hr class="docutils" />
 <section id="meet-the-speakers">
-<h2>Meet the speakers<a class="headerlink" href="#meet-the-speakers" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Information about tutorial authors</em></p>
+<h2>Meet the Speakers<a class="headerlink" href="#meet-the-speakers" title="Link to this heading">#</a></h2>
+<section id="julien-guinot">
+<h3><a class="reference external" href="https://placeholder.link">Julien Guinot</a><a class="headerlink" href="#julien-guinot" title="Link to this heading">#</a></h3>
+<p><img alt="Julien Guinot" src="path/to/julien_placeholder.png" /><br />
+Julien Guinot is a second-year PhD student at the <strong>AI and Music Centre for Doctoral Training</strong> at Queen Mary University of London, sponsored by Universal Music Group, under the supervision of Dr. György Fazekas, Dr. Emmanouil Benetos, and Dr. Elio Quinton. His research focuses on representation learning for music, with an emphasis on improving (multimodal) SSL approaches for user-centric applications such as controllable retrieval. His previous work on contrastive learning for music representations has been presented at <strong>ISMIR</strong> and <strong>ICASSP</strong>.</p>
+</section>
+<hr class="docutils" />
+<section id="alain-riou">
+<h3><a class="reference external" href="https://placeholder.link">Alain Riou</a><a class="headerlink" href="#alain-riou" title="Link to this heading">#</a></h3>
+<p><img alt="Alain Riou" src="path/to/alain_placeholder.png" /><br />
+Alain Riou is a recent PhD graduate who worked on self-supervised learning of musical representations at <strong>Télécom Paris</strong> and <strong>Sony CSL – Paris</strong>, under the supervision of Stefan Lattner, Gaëtan Hadjeres, and Geoffroy Peeters. His research interests include deep representation learning and SSL for MIR. His work <em>PESTO: Pitch Estimation with Self-supervised Transposition-equivariant Objective</em> received the <strong>Best Paper Award at ISMIR 2023</strong>. More recently, his work on JEPA models for music has been accepted at ISMIR and ICASSP.</p>
+</section>
+<hr class="docutils" />
+<section id="yuexuan-kong">
+<h3><a class="reference external" href="https://placeholder.link">Yuexuan Kong</a><a class="headerlink" href="#yuexuan-kong" title="Link to this heading">#</a></h3>
+<p><img alt="Yuexuan Kong" src="path/to/yuexuan_placeholder.png" /><br />
+Yuexuan Kong is a second-year industrial PhD student at <strong>Deezer</strong> and <strong>LS2N (CNRS)</strong> at Ecole Centrale de Nantes, under the supervision of Dr. Gabriel Meseguer-Brocal, Dr. Vincent Lostanlen, Dr. Mathieu Lagrange, and Dr. Romain Hennequin. Her research focuses on self-supervised learning for music, with a particular emphasis on <strong>equivariant SSL</strong> and contrastive learning.</p>
+</section>
+<hr class="docutils" />
+<section id="marco-pasini">
+<h3><a class="reference external" href="https://placeholder.link">Marco Pasini</a><a class="headerlink" href="#marco-pasini" title="Link to this heading">#</a></h3>
+<p><img alt="Marco Pasini" src="path/to/marco_placeholder.png" /><br />
+Marco Pasini is a second-year PhD student at <strong>Queen Mary University of London</strong>, in collaboration with <strong>Sony Computer Science Laboratories – Paris</strong>. He works on <strong>Generative Modeling</strong> applied to audio, including projects such as <strong>Musika</strong> for fast music generation, the <strong>Music2Latent</strong> series for efficient audio compression, <strong>Diff-A-Riff</strong> for accompaniment generation, and the <strong>Continuous Autoregressive Models</strong> framework.</p>
+</section>
+<hr class="docutils" />
+<section id="gabriel-meseguer-brocal">
+<h3><a class="reference external" href="https://placeholder.link">Gabriel Meseguer-Brocal</a><a class="headerlink" href="#gabriel-meseguer-brocal" title="Link to this heading">#</a></h3>
+<p><img alt="Gabriel Meseguer-Brocal" src="path/to/gabriel_placeholder.png" /><br />
+Gabriel Meseguer-Brocal is a research scientist at <strong>Deezer</strong>. Previously, he completed postdoctoral research at <strong>CNRS</strong> in France and earned his PhD in 2020 at <strong>IRCAM</strong>. His research interests include signal processing and deep learning for music, with applications in <strong>source separation, dataset creation, multi-tagging, self-supervised learning, and multimodal analysis</strong>.</p>
+</section>
+<hr class="docutils" />
+<section id="stefan-lattner">
+<h3><a class="reference external" href="https://placeholder.link">Stefan Lattner</a><a class="headerlink" href="#stefan-lattner" title="Link to this heading">#</a></h3>
+<p><img alt="Stefan Lattner" src="path/to/stefan_placeholder.png" /><br />
+Stefan Lattner is a research leader at the <strong>Sony CSL – Paris music team</strong>, working on generative AI for music production, MIR, and computational music perception. He earned his PhD in 2019 from <strong>Johannes Kepler University Linz</strong>, focusing on modeling musical structure, transformation learning, and computational relative pitch perception. His interests span <strong>generative sequence models, representation learning, and human-computer interaction in music creation</strong>. He received the <strong>Best Paper Award at ISMIR 2019</strong> for his work <em>Learning Complex Basis Functions for Invariant Representations of Audio</em>.</p>
+</section>
 </section>
 <hr class="docutils" />
 <div class="toctree-wrapper compound">
@@ -501,7 +559,7 @@ document.write(`
        title="next page">
       <div class="prev-next-info">
         <p class="prev-next-subtitle">next</p>
-        <p class="prev-next-title">1. Introduction</p>
+        <p class="prev-next-title">Introduction</p>
       </div>
       <i class="fa-solid fa-angle-right"></i>
     </a>
@@ -522,8 +580,16 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#what-you-ll-learn">What You’ll Learn</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of tutorial structure and code environment</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the speakers</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#overview-of-tutorial-structure-and-code-environment">Overview of Tutorial Structure and Code Environment</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#meet-the-speakers">Meet the Speakers</a><ul class="nav section-nav flex-column">
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#julien-guinot">Julien Guinot</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#alain-riou">Alain Riou</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#yuexuan-kong">Yuexuan Kong</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#marco-pasini">Marco Pasini</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#gabriel-meseguer-brocal">Gabriel Meseguer-Brocal</a></li>
+<li class="toc-h3 nav-item toc-entry"><a class="reference internal nav-link" href="#stefan-lattner">Stefan Lattner</a></li>
+</ul>
+</li>
 </ul>
   </nav></div>
 

@@ -8,7 +8,7 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
 
-    <title>3. Core Ideas in SSL &#8212; Self-Supervised Learning for Music Information Retrieval</title>
+    <title>Core Ideas in SSL &#8212; Self-Supervised Learning for Music Information Retrieval</title>
   
   
   
@@ -61,7 +61,7 @@
     <link rel="index" title="Index" href="../genindex.html" />
     <link rel="search" title="Search" href="../search.html" />
     <link rel="next" title="4. Conceptual Overview" href="../part2_jea/conceptual_overview.html" />
-    <link rel="prev" title="2. Deep Learning Basics Refresher" href="deep_learning_basics.html" />
+    <link rel="prev" title="Deep Learning Basics Refresher" href="deep_learning_basics.html" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <meta name="docsearch:language" content="en"/>
   </head>
@@ -175,9 +175,9 @@
         </ul>
         <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 1: Foundations</span></p>
 <ul class="current nav bd-sidenav">
-<li class="toctree-l1"><a class="reference internal" href="introduction.html">1. Introduction</a></li>
-<li class="toctree-l1"><a class="reference internal" href="deep_learning_basics.html">2. Deep Learning Basics Refresher</a></li>
-<li class="toctree-l1 current active"><a class="current reference internal" href="#">3. Core Ideas in SSL</a></li>
+<li class="toctree-l1"><a class="reference internal" href="introduction.html">Introduction</a></li>
+<li class="toctree-l1"><a class="reference internal" href="deep_learning_basics.html">Deep Learning Basics Refresher</a></li>
+<li class="toctree-l1 current active"><a class="current reference internal" href="#">Core Ideas in SSL</a></li>
 </ul>
 <p aria-level="2" class="caption" role="heading"><span class="caption-text">Chapter 2: Joint Embedding Architectures (JEA)</span></p>
 <ul class="nav bd-sidenav">
@@ -400,7 +400,7 @@ document.write(`
               
 
 <div id="jb-print-docs-body" class="onlyprint">
-    <h1>3. Core Ideas in SSL</h1>
+    <h1>Core Ideas in SSL</h1>
     <!-- Table of contents -->
     <div id="print-main-content">
         <div id="jb-print-toc">
@@ -411,10 +411,10 @@ document.write(`
             <nav aria-label="Page">
                 <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#defining-ssl">Defining SSL</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-supervision-comes-from-the-data-itself">How supervision comes from the data itself</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pretraining-and-foundation-models">Pretraining and foundation models</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transfer-robustness-scalability">Transfer, robustness, scalability</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#new-horizons-towards-general-purpose-music-foundation-models">New Horizons: Towards general-purpose music foundation models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-supervision-comes-from-the-data-itself">How Supervision Comes from the Data Itself</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pretraining-and-foundation-models">Pretraining and Foundation Models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transfer-robustness-scalability">Transfer, Robustness, Scalability</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#new-horizons-towards-general-purpose-music-foundation-models">New Horizons: Towards General-Purpose Music Foundation Models</a></li>
 </ul>
             </nav>
         </div>
@@ -427,26 +427,58 @@ document.write(`
                 <article class="bd-article">
                   
   <section class="tex2jax_ignore mathjax_ignore" id="core-ideas-in-ssl">
-<h1>3. Core Ideas in SSL<a class="headerlink" href="#core-ideas-in-ssl" title="Link to this heading">#</a></h1>
+<h1>Core Ideas in SSL<a class="headerlink" href="#core-ideas-in-ssl" title="Link to this heading">#</a></h1>
 <section id="defining-ssl">
 <h2>Defining SSL<a class="headerlink" href="#defining-ssl" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Formal definition and characteristics</em></p>
+<p><strong>Self-Supervised Learning (SSL)</strong> is a machine learning paradigm where models learn representations without relying on human-provided labels. Instead, the data itself provides the supervision signal, typically through cleverly designed <em>pretext tasks</em>. These tasks encourage the model to discover meaningful structure in the input—whether by reconstructing missing parts, predicting transformations, or aligning different “views” of the same data.</p>
+<p>A useful way to think about SSL is as a middle ground between supervised and unsupervised learning: unlike fully unsupervised methods, SSL relies on well-defined training objectives; but unlike supervised approaches, it does not require manually labeled datasets <span id="id1">[]</span>.</p>
+<p><img alt="Placeholder: Diagram comparing supervised, unsupervised, and self-supervised learning" src="part1_foundations/path/to/placeholder_ssl_definition.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="how-supervision-comes-from-the-data-itself">
-<h2>How supervision comes from the data itself<a class="headerlink" href="#how-supervision-comes-from-the-data-itself" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Mechanisms of self-supervision</em></p>
+<h2>How Supervision Comes from the Data Itself<a class="headerlink" href="#how-supervision-comes-from-the-data-itself" title="Link to this heading">#</a></h2>
+<p>The defining feature of SSL is that <strong>supervision is derived directly from data structure</strong>.<br />
+Some common strategies include:</p>
+<ul class="simple">
+<li><p><strong>Contrastive objectives</strong>: Two segments from the same instance (e.g., adjacent audio frames, or two augmentations of the same waveform) are treated as “positives” and encouraged to have similar embeddings, while unrelated samples are pushed apart.</p></li>
+<li><p><strong>Masked modeling</strong>: Parts of the input are masked or corrupted, and the model learns to reconstruct or predict them from the context.</p></li>
+<li><p><strong>Predictive tasks</strong>: The model is trained to predict future or missing representations (e.g., forecasting the next embedding, or predicting compatibility between segments).</p></li>
+</ul>
+<p>In music, these strategies can be tailored to domain-specific properties: for example, contrastive learning can align timbral features across stems, or masked modeling can exploit the strong rhythmic and harmonic structure of audio <span id="id2">[]</span>.</p>
+<p><img alt="Placeholder: Examples of SSL tasks for music (contrastive pairs, masked spectrogram patches, predictive embeddings)" src="part1_foundations/path/to/placeholder_ssl_tasks.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="pretraining-and-foundation-models">
-<h2>Pretraining and foundation models<a class="headerlink" href="#pretraining-and-foundation-models" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Pretraining concepts and foundation models</em></p>
+<h2>Pretraining and Foundation Models<a class="headerlink" href="#pretraining-and-foundation-models" title="Link to this heading">#</a></h2>
+<p>One of the key promises of SSL is its ability to support <strong>large-scale pretraining</strong>. By training models on massive amounts of unlabeled audio, we can obtain <em>foundation models</em>—general-purpose representations that can later be fine-tuned or adapted to specific MIR tasks.</p>
+<p>This paradigm mirrors the success of models such as <strong>BERT</strong> in natural language processing <span id="id3">[]</span>, <strong>SimCLR/InfoNCE</strong> in vision <span id="id4">[]</span>, and <strong>wav2vec 2.0</strong> in speech <span id="id5">[]</span>. In the music domain, the same principle allows us to learn feature spaces that capture rhythm, timbre, harmony, and structure, all without relying on human annotations.</p>
+<p>Foundation models trained in this way serve as backbones for multiple applications: tagging, recommendation, transcription, similarity retrieval, and even generative modeling.</p>
+<p><img alt="Placeholder: Diagram of pretraining → fine-tuning workflow in SSL" src="part1_foundations/path/to/placeholder_pretraining_pipeline.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="transfer-robustness-scalability">
-<h2>Transfer, robustness, scalability<a class="headerlink" href="#transfer-robustness-scalability" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Benefits of SSL approaches</em></p>
+<h2>Transfer, Robustness, Scalability<a class="headerlink" href="#transfer-robustness-scalability" title="Link to this heading">#</a></h2>
+<p>SSL methods offer several advantages over traditional supervised approaches:</p>
+<ul class="simple">
+<li><p><strong>Transferability</strong>: Representations learned from one dataset or modality can be reused across a wide variety of downstream tasks. For example, embeddings trained on large-scale streaming audio can improve chord recognition or cover song detection.</p></li>
+<li><p><strong>Robustness</strong>: Because the model is not tied to a single labeling scheme, SSL tends to learn more general and semantically rich representations, making it less brittle to noise or domain shifts.</p></li>
+<li><p><strong>Scalability</strong>: Perhaps most importantly, SSL can leverage vast amounts of unlabeled music available online, bypassing the annotation bottleneck that has traditionally limited MIR research <span id="id6">[]</span>.</p></li>
+</ul>
+<p>These properties make SSL an ideal fit for the music domain, where annotated resources are scarce but raw data is abundant.</p>
+<p><img alt="Placeholder: Illustration of benefits of SSL — transfer, robustness, scalability" src="part1_foundations/path/to/placeholder_ssl_benefits.png" /></p>
 </section>
+<hr class="docutils" />
 <section id="new-horizons-towards-general-purpose-music-foundation-models">
-<h2>New Horizons: Towards general-purpose music foundation models<a class="headerlink" href="#new-horizons-towards-general-purpose-music-foundation-models" title="Link to this heading">#</a></h2>
-<p><em>Content to be added: Future directions and vision</em></p>
+<h2>New Horizons: Towards General-Purpose Music Foundation Models<a class="headerlink" href="#new-horizons-towards-general-purpose-music-foundation-models" title="Link to this heading">#</a></h2>
+<p>Looking ahead, SSL opens the path toward <strong>general-purpose music foundation models</strong>. These would be models pretrained at scale, capable of serving as versatile backbones for a wide spectrum of MIR and creative applications:</p>
+<ul class="simple">
+<li><p><strong>Controllable retrieval</strong>: retrieving tracks or stems based on high-level similarity (e.g., timbre, style, harmony).</p></li>
+<li><p><strong>Multimodal alignment</strong>: learning representations that connect music with lyrics, metadata, or user preferences.</p></li>
+<li><p><strong>Generative integration</strong>: combining representation learning with generative models to create interactive music systems.</p></li>
+<li><p><strong>Equivariance-aware embeddings</strong>: building models that explicitly handle transformations like key transposition or tempo change without discarding musically important information.</p></li>
+</ul>
+<p>The vision is to move from task-specific models to <strong>flexible, reusable musical representations</strong> that underpin both scientific inquiry and creative practice <span id="id7">[]</span>.</p>
+<p><img alt="Placeholder: Conceptual diagram of a music foundation model supporting multiple downstream tasks" src="part1_foundations/path/to/placeholder_music_foundation_model.png" /></p>
 <hr class="docutils" />
 <p><em>Next: <a class="reference internal" href="../part2_jea/conceptual_overview.html"><span class="std std-doc">Part II — Joint Embedding Architectures (JEA)</span></a></em></p>
 </section>
@@ -488,7 +520,7 @@ document.write(`
       <i class="fa-solid fa-angle-left"></i>
       <div class="prev-next-info">
         <p class="prev-next-subtitle">previous</p>
-        <p class="prev-next-title">2. Deep Learning Basics Refresher</p>
+        <p class="prev-next-title">Deep Learning Basics Refresher</p>
       </div>
     </a>
     <a class="right-next"
@@ -517,10 +549,10 @@ document.write(`
   <nav class="bd-toc-nav page-toc">
     <ul class="visible nav section-nav flex-column">
 <li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#defining-ssl">Defining SSL</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-supervision-comes-from-the-data-itself">How supervision comes from the data itself</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pretraining-and-foundation-models">Pretraining and foundation models</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transfer-robustness-scalability">Transfer, robustness, scalability</a></li>
-<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#new-horizons-towards-general-purpose-music-foundation-models">New Horizons: Towards general-purpose music foundation models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#how-supervision-comes-from-the-data-itself">How Supervision Comes from the Data Itself</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#pretraining-and-foundation-models">Pretraining and Foundation Models</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#transfer-robustness-scalability">Transfer, Robustness, Scalability</a></li>
+<li class="toc-h2 nav-item toc-entry"><a class="reference internal nav-link" href="#new-horizons-towards-general-purpose-music-foundation-models">New Horizons: Towards General-Purpose Music Foundation Models</a></li>
 </ul>
   </nav></div>
 
