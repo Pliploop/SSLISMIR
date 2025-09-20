@@ -3,6 +3,7 @@ import lightning as L
 from ema_pytorch.ema_pytorch import EMA
 from typing import Any
 from torch import nn
+import copy
 
 try:
     from utils.utils import instantiate_from_mapping
@@ -220,15 +221,24 @@ class BYOL(BaseWrapper):
             self.predictor_head = predictor_head
         else:
             self.predictor_head = build_model(predictor_head)
-        self.predictor_head = predictor_head
 
-        
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head,
+            "predictor_head": self.predictor_head
+        })
+
+    def on_fit_start(self):
+        self.configure_ema()
+
     def configure_ema(self):
         ## make an ema model of all modules
         self.ema_backbone = copy.deepcopy(self.backbone)
         self.ema_projection_head = copy.deepcopy(self.projection_head)
-        self.ema_predictor_head = copy.deepcopy(self.predictor_head)
-
+        self.ema_model = nn.ModuleDict({
+            "backbone": self.ema_backbone,
+            "projection_head": self.ema_projection_head,
+        })
 
     def training_step(self, batch, batch_idx):
         target_sims = batch.get("target_sims")
@@ -243,7 +253,6 @@ class BYOL(BaseWrapper):
             out_stop = self.ema_backbone(views)
             z_stop = out_stop["z"]
             g_stop = self.ema_projection_head(z_stop)
-            h_stop = self.ema_predictor_head(g_stop)
 
         h_1, h_2 = torch.chunk(h, 2, dim = 0)
 
@@ -251,7 +260,9 @@ class BYOL(BaseWrapper):
 
         loss = self.loss(h_1, g_stop_2) + self.loss(h_2, g_stop_1)
 
-        self.log("loss", loss)
+        self._maybe_update_ema(self.global_step)
+
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -267,7 +278,6 @@ class BYOL(BaseWrapper):
             out_stop = self.ema_backbone(views)
             z_stop = out_stop["z"]
             g_stop = self.ema_projection_head(z_stop)
-            h_stop = self.ema_predictor_head(g_stop)
 
         h_1, h_2 = torch.chunk(h, 2, dim = 0)
         g_stop_1, g_stop_2 = torch.chunk(g_stop, 2, dim = 0)
@@ -276,6 +286,18 @@ class BYOL(BaseWrapper):
 
         self.log("loss", loss)
         return loss
+
+    def _maybe_update_ema(self, global_step: int):
+        # if step > update_after_step and step % update_every == 0
+        if global_step > self.ema_params.get("update_after_step", 0) and global_step % self.ema_params.get("update_every", 1) == 0:
+            self.update_ema()
+
+    def update_ema(self):
+        rate = self.ema_params.get("beta", 0.996)
+        for param, ema_param in zip(self.backbone.parameters(), self.ema_backbone.parameters()):
+            ema_param.data.copy_(rate * ema_param.data + (1 - rate) * param.data)
+        for param, ema_param in zip(self.projection_head.parameters(), self.ema_projection_head.parameters()):
+            ema_param.data.copy_(rate * ema_param.data + (1 - rate) * param.data)
 
 
 class BarlowTwins(BaseWrapper):
@@ -317,6 +339,7 @@ class BarlowTwins(BaseWrapper):
         self.log("loss", loss)
         return loss
 
+
 class Supervised(BaseWrapper):
     def __init__(self, backbone: nn.Module, projection_head: nn.Module, loss_params: dict[str, Any], opt_params: dict[str, Any], sched_params: dict[str, Any] | None = None, ema_params: dict[str, Any] | None = None):
         super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
@@ -324,10 +347,6 @@ class Supervised(BaseWrapper):
             self.projection_head = projection_head
         else:
             self.projection_head = build_model(projection_head)
-
-        
-
-    
             
     def training_step(self, batch, batch_idx):
         audio = batch.get("audio")

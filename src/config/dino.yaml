@@ -1,6 +1,5 @@
-
 # Model wrapper configuration
-__wrapper__: "models.training_wrappers.ContrastiveLearning"
+__wrapper__: "models.training_wrappers.BarlowTwins"
 
 # Model configuration
 model:
@@ -21,18 +20,18 @@ model:
       dropout: 0.0
       bias: true
 
-# loss:
-#   _name_: "utils.losses.SupConLoss"
-#   _kwargs_:
-#     temperature: 0.07
-#     contrast_mode: "all"
-#     base_temperature: 0.07
-
-
+# Loss function configuration - DINO loss
 loss:
-  _name_: "utils.losses.InfoNCE"
+  _name_: "utils.losses.DINOLoss"
   _kwargs_:
-    temperature: 0.05
+    out_dim: 64
+    ncrops: 2
+    warmup_teacher_temp: 0.04
+    teacher_temp: 0.04
+    warmup_teacher_temp_steps: 30
+    nepochs: 1000
+    student_temp: 0.1
+    center_momentum: 0.9
 
 # Optimizer configuration
 optimizer:
@@ -42,7 +41,8 @@ optimizer:
 
 # Scheduler configuration (optional)
 scheduler: null
-# EMA configuration (optional)
+
+# EMA configuration (not used in DINO, but kept for consistency)
 ema: null
 
 # Dataset configuration
@@ -128,7 +128,7 @@ dataloader:
 # Trainer configuration
 trainer:
   max_epochs: 1000
-  devices: [2]
+  devices: [1]
   accelerator: "gpu"
   precision: "16-mixed"
   log_every_n_steps: 100
@@ -150,7 +150,6 @@ callbacks:
     _name_: "lightning.pytorch.callbacks.RichModelSummary"
     _kwargs_:
       max_depth: 2
-
 
   model_checkpoint:
     _name_: "lightning.pytorch.callbacks.ModelCheckpoint"
@@ -180,12 +179,6 @@ callbacks:
       max_iter: 5000
       validation_fraction: 0
       every_n_epochs: 10
-
-  save_embeddings:
-    _name_: "callbacks.viz2d.SaveEmbeddingsCallback"
-    _kwargs_:
-      every_n_epochs: 5
-      save_dir: "data/embeddings/contrastive_ssl_embeddings"
 
 # Strategy configuration
 strategy: "auto"

@@ -1,6 +1,5 @@
-
 # Model wrapper configuration
-__wrapper__: "models.training_wrappers.ContrastiveLearning"
+__wrapper__: "models.training_wrappers.BYOL"
 
 # Model configuration
 model:
@@ -21,18 +20,20 @@ model:
       dropout: 0.0
       bias: true
 
-# loss:
-#   _name_: "utils.losses.SupConLoss"
-#   _kwargs_:
-#     temperature: 0.07
-#     contrast_mode: "all"
-#     base_temperature: 0.07
+  predictor_head:
+    _name_: "models.backbones.MLP"
+    _kwargs_:
+      in_features: 64
+      out_features: 64
+      hidden_features: [256, 128]
+      activation: "relu"
+      use_batch_norm: true
+      dropout: 0.0
+      bias: true
 
-
+# Loss function configuration
 loss:
-  _name_: "utils.losses.InfoNCE"
-  _kwargs_:
-    temperature: 0.05
+  _name_: torch.nn.functional.mse_loss
 
 # Optimizer configuration
 optimizer:
@@ -42,8 +43,12 @@ optimizer:
 
 # Scheduler configuration (optional)
 scheduler: null
-# EMA configuration (optional)
-ema: null
+
+# EMA configuration for BYOL
+ema:
+  beta: 0.996
+  update_after_step: 0
+  update_every: 1
 
 # Dataset configuration
 dataset:
@@ -151,7 +156,6 @@ callbacks:
     _kwargs_:
       max_depth: 2
 
-
   model_checkpoint:
     _name_: "lightning.pytorch.callbacks.ModelCheckpoint"
     _kwargs_:
@@ -185,7 +189,7 @@ callbacks:
     _name_: "callbacks.viz2d.SaveEmbeddingsCallback"
     _kwargs_:
       every_n_epochs: 5
-      save_dir: "data/embeddings/contrastive_ssl_embeddings"
+      save_dir: "data/embeddings/byol_embeddings"
 
 # Strategy configuration
 strategy: "auto"

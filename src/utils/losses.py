@@ -116,6 +116,77 @@ class InfoNCE(nn.Module):
         return loss
 
 
+class SupConLoss(nn.Module):
+    """Supervised Contrastive Learning: https://arxiv.org/pdf/2004.11362.pdf.
+    It also supports the unsupervised contrastive loss in SimCLR"""
+    def __init__(self, temperature=0.07, contrast_mode='all',
+                 base_temperature=0.07):
+        super(SupConLoss, self).__init__()
+        self.temperature = temperature
+        self.contrast_mode = contrast_mode
+        self.base_temperature = base_temperature
+
+    def forward(self, features, target_sims = None):
+        """Compute loss for model. If both `labels` and `mask` are None,
+        it degenerates to SimCLR unsupervised loss:
+        https://arxiv.org/pdf/2002.05709.pdf
+
+        Args:
+            features: hidden vector of shape [bsz, n_views, ...].
+            labels: ground truth of shape [bsz].
+            mask: contrastive mask of shape [bsz, bsz], mask_{i,j}=1 if sample j
+                has the same class as sample i. Can be asymmetric.
+        Returns:
+            A loss scalar.
+        """
+
+        batch_size = features.shape[0]
+        features = F.normalize(features, dim=-1)
+        if target_sims is None:
+            mask = torch.eye(batch_size, dtype=torch.float32).to(features.device)
+        else:
+            mask = target_sims.float().to(features.device)
+
+        contrast_count = 2
+        anchor_feature = features
+        contrast_feature = features
+        anchor_count = 2
+
+        # compute logits
+        anchor_dot_contrast = torch.div(
+            torch.matmul(anchor_feature, contrast_feature.T),
+            self.temperature)
+        # for numerical stability
+        logits_max, _ = torch.max(anchor_dot_contrast, dim=1, keepdim=True)
+        logits = anchor_dot_contrast - logits_max.detach()
+
+        # tile mask
+        # mask = mask.repeat(anchor_count, contrast_count)
+        # mask-out self-contrast cases
+        logits_mask = torch.scatter(
+            torch.ones_like(mask),
+            1,
+            torch.arange(batch_size).view(-1, 1).to(features.device),
+            0
+        )
+        mask = mask * logits_mask
+
+        # compute log_prob
+        exp_logits = torch.exp(logits) * logits_mask
+        log_prob = logits - torch.log(exp_logits.sum(1, keepdim=True))
+
+        mask_pos_pairs = mask.sum(1)
+        mask_pos_pairs = torch.where(mask_pos_pairs < 1e-6, 1, mask_pos_pairs)
+        mean_log_prob_pos = (mask * log_prob).sum(1) / mask_pos_pairs
+
+        # loss
+        loss = - (self.temperature / self.base_temperature) * mean_log_prob_pos
+        # loss = loss.view(anchor_count, batch_size).mean()
+        loss = loss.mean()
+
+        return loss
+
+
 class DINOLoss(nn.Module):
     def __init__(self, out_dim, ncrops, warmup_teacher_temp, teacher_temp,
                  warmup_teacher_temp_steps, nepochs, student_temp=0.1,
