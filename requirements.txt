@@ -7,3 +7,10 @@ plotly>=5.0.0
 scikit-learn>=1.1.0
 umap-learn>=0.5.0
 wandb>=0.13.0
+
+pip install pyppeteer
+pip install jupyter
+pip install jupyterlab
+pip install jupyter-book
+pip install sphinxcontrib-mermaid
+pip install ghp-import
