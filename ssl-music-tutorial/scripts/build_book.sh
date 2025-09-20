@@ -8,7 +8,7 @@ pip install pytest-playwright
 playwright install
 
 jupyter-book build ./book
-jupyter-book build book/ --builder pdfhtml
+# jupyter-book build book/ --builder pdf
 
 cd book
 ghp-import -n -p -f _build/html

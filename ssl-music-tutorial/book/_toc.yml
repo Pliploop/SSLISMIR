@@ -1,45 +1,39 @@
 format: jb-book
 root: intro.md
 parts:
-  - caption: "Part I — Foundations"
+  - caption: "Chapter 1: Foundations"
     chapters:
-      # - file: part1_foundations/introduction
-      - file: part1_foundations/deep_learning_basics
-      - file: part1_foundations/core_ideas_ssl
-
-  - caption: "Part II — Joint Embedding Architectures (JEA)"
+      - file: part1_foundations/introduction.md
+      - file: part1_foundations/deep_learning_basics.md
+      - file: part1_foundations/core_ideas_ssl.md
+  - caption: "Chapter 2: Joint Embedding Architectures (JEA)"
     chapters:
-      - file: part2_jea/conceptual_overview
-      - file: part2_jea/applications_music
-      - file: part2_jea/hands_on_contrastive
-      - file: part2_jea/new_horizons_jea
-
-  - caption: "Part III — Masked Modeling & JEPA"
+      - file: part2_jea/conceptual_overview.md
+      - file: part2_jea/applications_music.md
+      - file: part2_jea/hands_on_contrastive.md
+      - file: part2_jea/new_horizons_jea.md
+  - caption: "Chapter 3: Masked Modeling & JEPA"
     chapters:
-      - file: part3_masked_modeling/masked_autoencoders
-      - file: part3_masked_modeling/hands_on_masked_modeling
-      - file: part3_masked_modeling/jepa
-      - file: part3_masked_modeling/new_horizons_masked_modeling
-
-  - caption: "Part IV — Equivariant SSL"
+      - file: part3_masked_modeling/masked_autoencoders.md
+      - file: part3_masked_modeling/hands_on_masked_modeling.md
+      - file: part3_masked_modeling/jepa.md
+      - file: part3_masked_modeling/new_horizons_masked_modeling.md
+  - caption: "Chapter 4: Equivariant SSL"
     chapters:
-      - file: part4_equivariant_ssl/equivariance_vs_invariance
-      - file: part4_equivariant_ssl/architectures_applications
-      - file: part4_equivariant_ssl/hands_on_equivariant
-      - file: part4_equivariant_ssl/new_horizons_equivariant
-
-  - caption: "Part V — Generative SSL"
+      - file: part4_equivariant_ssl/equivariance_vs_invariance.md
+      - file: part4_equivariant_ssl/architectures_applications.md
+      - file: part4_equivariant_ssl/hands_on_equivariant.md     
+      - file: part4_equivariant_ssl/new_horizons_equivariant.md
+  - caption: "Chapter 5: Generative SSL"
     chapters:
-      - file: part5_generative_ssl/representation_generation
-      - file: part5_generative_ssl/hands_on_generative
-      - file: part5_generative_ssl/new_horizons_generative
-
-  - caption: "Part VI — Wrapping Up"
+      - file: part5_generative_ssl/representation_generation.md
+      - file: part5_generative_ssl/hands_on_generative.md
+      - file: part5_generative_ssl/new_horizons_generative.md
+  - caption: "Chapter 6: Wrapping Up"
     chapters:
-      - file: part6_wrapping_up/evaluating_ssl
-      - file: part6_wrapping_up/conclusion
-
-  - caption: "Appendices"
+      - file: part6_wrapping_up/evaluating_ssl.md
+      - file: part6_wrapping_up/conclusion.md
+  - caption: "Chapter 7: Appendices"
     chapters:
-      - file: appendices/practical_setup
-      - file: appendices/further_reading
+      - file: appendices/practical_setup.md
+      - file: appendices/further_reading.md
