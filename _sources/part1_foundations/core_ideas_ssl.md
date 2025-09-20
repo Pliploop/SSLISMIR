@@ -2,24 +2,41 @@
 
 ## Defining SSL
 
-**Self-Supervised Learning (SSL)** is a machine learning paradigm where models learn representations without relying on human-provided labels. Instead, the data itself provides the supervision signal, typically through cleverly designed *pretext tasks*. These tasks encourage the model to discover meaningful structure in the input—whether by reconstructing missing parts, predicting transformations, or aligning different “views” of the same data.  
+**Self-Supervised Learning (SSL)** is a machine learning paradigm where models learn representations without relying on human-provided labels. Instead, the data itself provides the supervision signal, typically through cleverly designed *pretext tasks*.  
 
-A useful way to think about SSL is as a middle ground between supervised and unsupervised learning: unlike fully unsupervised methods, SSL relies on well-defined training objectives; but unlike supervised approaches, it does not require manually labeled datasets {cite}`Chen2020SimCLR,Devlin2019BERT,Baevski2020wav2vec`.  
+Formally, given an input \(x \in \mathcal{X}\), the model learns a representation  
+
+\[
+h = f_\theta(x),
+\]
+
+and a pretext task is defined through a transformation of \(x\) into pseudo-labels \(\tilde{y}\) or prediction targets \(\tilde{x}\). The training objective is to minimize  
+
+\[
+\min_\theta \; \mathbb{E}_{x \sim \mathcal{D}} \; \mathcal{L}(g_\theta(h), \tilde{y}),
+\]
+
+where \(\tilde{y}\) comes not from manual annotation but from intrinsic properties of the data itself {cite}`Chen2020SimCLR,Devlin2019BERT,Baevski2020wav2vec`.  
 
 ![Placeholder: Diagram comparing supervised, unsupervised, and self-supervised learning](path/to/placeholder_ssl_definition.png)
 
 ---
-
 ## How Supervision Comes from the Data Itself
 
-The defining feature of SSL is that **supervision is derived directly from data structure**.  
-Some common strategies include:  
+The defining feature of SSL is that **the data itself provides the training signal**. Instead of asking humans to label every example, the model is set up to solve tasks where the *answer is already hidden in the input*. By solving these tasks, the model is forced to capture the structure of the data in ways that generalize across applications.  
 
-- **Contrastive objectives**: Two segments from the same instance (e.g., adjacent audio frames, or two augmentations of the same waveform) are treated as “positives” and encouraged to have similar embeddings, while unrelated samples are pushed apart.  
-- **Masked modeling**: Parts of the input are masked or corrupted, and the model learns to reconstruct or predict them from the context.  
-- **Predictive tasks**: The model is trained to predict future or missing representations (e.g., forecasting the next embedding, or predicting compatibility between segments).  
+### Contrastive objectives
+In contrastive learning, the model learns that two different “views” of the same audio belong together. For example, if we apply augmentations (cropping, filtering, pitch shifting) to the same clip, the model is asked to recognize them as related. At the same time, unrelated clips are pushed apart. The intuition is that, by discovering what stays consistent across transformations, the model internalizes robust, semantically meaningful features.  
 
-In music, these strategies can be tailored to domain-specific properties: for example, contrastive learning can align timbral features across stems, or masked modeling can exploit the strong rhythmic and harmonic structure of audio {cite}`Spijkervet2021CLMR,McCallum2022SupervisedUnsupervised`.  
+### Masked modeling
+In masked modeling, parts of the input are deliberately hidden, and the model must reconstruct them from the remaining context. In audio, this could mean removing patches of a spectrogram and asking the model to predict the missing sound. The reason this works is that music is highly structured: rhythms, harmonies, and timbres evolve in predictable ways. By learning to fill in the blanks, the model captures these regularities.  
+
+### Predictive tasks
+Another strategy is to ask the model to forecast or predict relationships within the data—for instance, what the next segment of a track might sound like, or whether two excerpts come from the same piece. This encourages the model to encode both local continuity and global structure.  
+
+---
+
+At a high level, these pretext tasks all share the same principle: they exploit **shared information** within the data. By aligning augmented views, reconstructing missing pieces, or predicting future segments, the model learns to build internal representations that reflect the underlying organization of music. Crucially, these representations often transfer well to tasks the model was never explicitly trained on—like genre recognition, cover song detection, or instrument classification.  
 
 ![Placeholder: Examples of SSL tasks for music (contrastive pairs, masked spectrogram patches, predictive embeddings)](path/to/placeholder_ssl_tasks.png)
 
@@ -27,11 +44,19 @@ In music, these strategies can be tailored to domain-specific properties: for ex
 
 ## Pretraining and Foundation Models
 
-One of the key promises of SSL is its ability to support **large-scale pretraining**. By training models on massive amounts of unlabeled audio, we can obtain *foundation models*—general-purpose representations that can later be fine-tuned or adapted to specific MIR tasks.  
+A major promise of SSL is **large-scale pretraining**: models learn from vast collections of unlabeled audio before being adapted to specific tasks. The general workflow is  
 
-This paradigm mirrors the success of models such as **BERT** in natural language processing {cite}`Devlin2019BERT`, **SimCLR/InfoNCE** in vision {cite}`Chen2020SimCLR`, and **wav2vec 2.0** in speech {cite}`Baevski2020wav2vec`. In the music domain, the same principle allows us to learn feature spaces that capture rhythm, timbre, harmony, and structure, all without relying on human annotations.  
+\[
+h = f_\theta(x) \quad \text{(pretraining)},
+\]  
 
-Foundation models trained in this way serve as backbones for multiple applications: tagging, recommendation, transcription, similarity retrieval, and even generative modeling.  
+followed by a fine-tuning step with task-specific data:  
+
+\[
+\hat{y} = g_\phi(h), \quad \mathcal{L}( \hat{y}, y).
+\]
+
+This mirrors the success of **BERT** in NLP {cite}`Devlin2019BERT`, **SimCLR** in vision {cite}`Chen2020SimCLR`, and **wav2vec 2.0** in speech {cite}`Baevski2020wav2vec`. In music, such foundation models can encode rhythm, timbre, and harmony in a general-purpose embedding space, later adapted for tasks like tagging, transcription, or recommendation.  
 
 ![Placeholder: Diagram of pretraining → fine-tuning workflow in SSL](path/to/placeholder_pretraining_pipeline.png)
 
@@ -39,13 +64,19 @@ Foundation models trained in this way serve as backbones for multiple applicatio
 
 ## Transfer, Robustness, Scalability
 
-SSL methods offer several advantages over traditional supervised approaches:  
+SSL yields representations that are:  
 
-- **Transferability**: Representations learned from one dataset or modality can be reused across a wide variety of downstream tasks. For example, embeddings trained on large-scale streaming audio can improve chord recognition or cover song detection.  
-- **Robustness**: Because the model is not tied to a single labeling scheme, SSL tends to learn more general and semantically rich representations, making it less brittle to noise or domain shifts.  
-- **Scalability**: Perhaps most importantly, SSL can leverage vast amounts of unlabeled music available online, bypassing the annotation bottleneck that has traditionally limited MIR research {cite}`Buisson2024SSLForMusic,Yonay2025Myna`.  
+- **Transferable**, since embeddings trained on one corpus can generalize to many MIR tasks.  
+- **Robust**, because models learn invariances to noise and dataset bias.  
+- **Scalable**, as they can exploit the vast stores of unlabeled music data available online.  
 
-These properties make SSL an ideal fit for the music domain, where annotated resources are scarce but raw data is abundant.  
+In mathematical terms, a pretrained encoder \(f_\theta\) provides a universal mapping to latent space, and downstream tasks simply learn lightweight heads \(g_\phi\) with limited labeled data:  
+
+\[
+\hat{y} = g_\phi(f_\theta(x)).
+\]
+
+This dramatically reduces the dependence on large annotated datasets {cite}`Buisson2024SSLForMusic,Yonay2025Myna`.  
 
 ![Placeholder: Illustration of benefits of SSL — transfer, robustness, scalability](path/to/placeholder_ssl_benefits.png)
 
@@ -53,14 +84,14 @@ These properties make SSL an ideal fit for the music domain, where annotated res
 
 ## New Horizons: Towards General-Purpose Music Foundation Models
 
-Looking ahead, SSL opens the path toward **general-purpose music foundation models**. These would be models pretrained at scale, capable of serving as versatile backbones for a wide spectrum of MIR and creative applications:  
+The trajectory of SSL points toward **music foundation models**: large, pretrained systems that can underpin both MIR research and creative applications. Such models may unify contrastive, masked, predictive, and equivariant objectives into a single architecture, capable of:  
 
-- **Controllable retrieval**: retrieving tracks or stems based on high-level similarity (e.g., timbre, style, harmony).  
-- **Multimodal alignment**: learning representations that connect music with lyrics, metadata, or user preferences.  
-- **Generative integration**: combining representation learning with generative models to create interactive music systems.  
-- **Equivariance-aware embeddings**: building models that explicitly handle transformations like key transposition or tempo change without discarding musically important information.  
+- Retrieving music based on high-level similarity,  
+- Aligning audio with lyrics, metadata, or user queries,  
+- Supporting controllable music generation, and  
+- Capturing musically meaningful transformations like transposition or tempo scaling.  
 
-The vision is to move from task-specific models to **flexible, reusable musical representations** that underpin both scientific inquiry and creative practice {cite}`Guinot2025SLAP,Meseguer2023EquivariantSSL,Lattner2019InvariantAudio`.  
+The vision is to establish **flexible, reusable musical representations**, shifting MIR from fragmented task-specific pipelines to integrated general-purpose frameworks {cite}`Guinot2025SLAP,Meseguer2023EquivariantSSL,Lattner2019InvariantAudio`.  
 
 ![Placeholder: Conceptual diagram of a music foundation model supporting multiple downstream tasks](path/to/placeholder_music_foundation_model.png)
 
