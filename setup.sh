@@ -7,16 +7,17 @@ set -e  # Exit on any error
 
 echo "🎵 Setting up Music SSL ISMIR 2025 environment..."
 
+# install conda
+
+
 # Check if conda is available
 if ! command -v conda &> /dev/null; then
     echo "❌ Error: conda is not installed or not in PATH"
     echo "Please install Miniconda or Anaconda first: https://docs.conda.io/en/latest/miniconda.html"
-    exit 1
-fi
-
 # Create conda environment
 echo "📦 Creating conda environment 'ismir_ssl_2025'..."
 conda create -n ismir_ssl_2025 python=3.10 -y
+fi
 
 # Activate environment
 echo "🔄 Activating environment..."
