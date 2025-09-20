@@ -71,7 +71,7 @@ class BaseWrapper(L.LightningModule):
                     print(f"Optimizing {len(params)} parameters for {opt_config}")
                     opts.append(instantiate_from_mapping(opt_config, params=params))
                 else:
-                    opts.append(instantiate_from_mapping(opt_config, params=self.model.parameters()))
+                    opts.append(instantiate_from_mapping(opt_config, params=self.parameters()))
             return opts
         else:
             if "target_params" in config:
@@ -79,7 +79,7 @@ class BaseWrapper(L.LightningModule):
                 print(f"Optimizing {len(params)} parameters for {config}")
                 return [instantiate_from_mapping(config, params=params)]
             else:
-                return [instantiate_from_mapping(config, params=self.model.parameters())]
+                return [instantiate_from_mapping(config, params=self.parameters())]
             
 
     def configure_optimizers(self):
@@ -159,7 +159,12 @@ class SimSiam(BaseWrapper):
             self.predictor_head = predictor_head
         else:
             self.predictor_head = build_model(predictor_head)
-        self.predictor_head = predictor_head
+            
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head,
+            "predictor_head": self.predictor_head
+        })
 
     def training_step(self, batch, batch_idx):
         views = batch.get("views")
@@ -179,31 +184,28 @@ class SimSiam(BaseWrapper):
 
         loss = self.loss(h_1, g_stop_2) + self.loss(h_2, g_stop_1)
 
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
-        target_sims = batch.get("target_sims")
         views = batch.get("views")
 
-        out_ = self.model(views)
+        out_ = self.backbone(views)
         z = out_["z"]
         g = self.projection_head(z)
-        h = out_["h"]
+        h = self.predictor_head(g)
 
         with torch.no_grad():
             out_stop = self.backbone(views)
             z_stop = out_stop["z"]
-            g_stop = out_stop["g"]
-
-
+            g_stop = self.projection_head(z_stop)
 
         h_1, h_2 = torch.chunk(h, 2, dim = 0)
         g_stop_1, g_stop_2 = torch.chunk(g_stop, 2, dim = 0)
 
         loss = self.loss(h_1, g_stop_2) + self.loss(h_2, g_stop_1)
 
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
     
 
@@ -307,6 +309,11 @@ class BarlowTwins(BaseWrapper):
             self.projection_head = projection_head
         else:
             self.projection_head = build_model(projection_head)
+            
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head
+        })
         
     def training_step(self, batch, batch_idx):
         views = batch.get("views")
@@ -317,11 +324,11 @@ class BarlowTwins(BaseWrapper):
         
         
         ## chunk the batch into two views
-        z_1, z_2 = torch.chunk(z, 2, dim = 0)
+        g_1, g_2 = torch.chunk(g, 2, dim = 0)
 
-        loss = self.loss(z_1, z_2)
+        loss = self.loss(g_1, g_2)
 
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -332,11 +339,11 @@ class BarlowTwins(BaseWrapper):
         g = self.projection_head(z)
         
         ## chunk the batch into two views
-        z_1, z_2 = torch.chunk(z, 2, dim = 0)
+        g_1, g_2 = torch.chunk(g, 2, dim = 0)
 
-        loss = self.loss(z_1, z_2)
+        loss = self.loss(g_1, g_2)
 
-        self.log("loss", loss)
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
 
 
@@ -348,12 +355,165 @@ class Supervised(BaseWrapper):
         else:
             self.projection_head = build_model(projection_head)
             
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head
+        })
+            
     def training_step(self, batch, batch_idx):
         audio = batch.get("audio")
 
-        out_ = self.backbone(views)
+        out_ = self.backbone(audio)
         z = out_["z"]
         g = self.projection_head(z)
 
         loss = self.loss(g, batch.get("labels"))
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
         return loss
+
+
+class DINO(BaseWrapper):
+    """
+    DINO training wrapper with EMA encoder, whitening operation, and softmax.
+    Based on the DINO paper: Emerging Properties in Self-Supervised Vision Transformers
+    """
+    
+    def __init__(
+        self, 
+        backbone: nn.Module, 
+        projection_head: nn.Module, 
+        loss_params: dict[str, Any], 
+        opt_params: dict[str, Any], 
+        sched_params: dict[str, Any] | None = None, 
+        ema_params: dict[str, Any] | None = None,
+        warmup_teacher_temp: float = 0.04,
+        teacher_temp: float = 0.04,
+        warmup_teacher_temp_epochs: int = 30,
+        nepochs: int = 100
+    ):
+        super().__init__(backbone, loss_params, opt_params, sched_params, ema_params)
+        
+        if isinstance(projection_head, nn.Module):
+            self.projection_head = projection_head
+        else:
+            self.projection_head = build_model(projection_head)
+            
+        self.model = nn.ModuleDict({
+            "backbone": self.backbone,
+            "projection_head": self.projection_head
+        })
+        
+        # Get output dimension from projection head
+        if hasattr(self.projection_head, 'out_features'):
+            out_dim = self.projection_head.out_features
+        elif hasattr(self.projection_head, 'linear') and hasattr(self.projection_head.linear, 'out_features'):
+            out_dim = self.projection_head.linear.out_features
+        else:
+            # Fallback: assume standard output dimension
+            out_dim = 256
+            
+        # Initialize DINO loss with proper parameters
+        from src.utils.losses import DINOLoss
+        self.dino_loss = DINOLoss(
+            out_dim=out_dim,
+            warmup_teacher_temp=warmup_teacher_temp,
+            teacher_temp=teacher_temp,
+            warmup_teacher_temp_epochs=warmup_teacher_temp_epochs,
+            nepochs=nepochs
+        )
+        
+    def on_fit_start(self):
+        self.configure_ema()
+        
+    def configure_ema(self):
+        """Create EMA model for teacher network"""
+        self.ema_backbone = copy.deepcopy(self.backbone)
+        self.ema_projection_head = copy.deepcopy(self.projection_head)
+        self.ema_model = nn.ModuleDict({
+            "backbone": self.ema_backbone,
+            "projection_head": self.ema_projection_head,
+        })
+        
+    def forward_dino(self, views, is_teacher=False):
+        """
+        Forward pass for DINO with whitening and softmax
+        
+        Args:
+            views: Input views (batch of images)
+            is_teacher: Whether to use teacher (EMA) network
+            
+        Returns:
+            Whitened and softmaxed outputs
+        """
+        if is_teacher:
+            backbone = self.ema_backbone
+            projection_head = self.ema_projection_head
+        else:
+            backbone = self.backbone
+            projection_head = self.projection_head
+            
+        # Forward pass through backbone and projection head
+        out_ = backbone(views)
+        z = out_["z"]
+        g = projection_head(z)
+        
+        # Whitening operation (L2 normalization)
+        g = nn.functional.normalize(g, dim=-1)
+        
+        return g
+        
+    def training_step(self, batch, batch_idx):
+        views = batch.get("views")
+        
+        # Student forward pass
+        student_output = self.forward_dino(views, is_teacher=False)
+        
+        # Teacher forward pass (with no gradients)
+        with torch.no_grad():
+            teacher_output = self.forward_dino(views, is_teacher=True)
+        
+        # Chunk the batch into two views (following pattern from other wrappers)
+        student_view1, student_view2 = torch.chunk(student_output, 2, dim=0)
+        teacher_view1, teacher_view2 = torch.chunk(teacher_output, 2, dim=0)
+            
+        # Compute DINO loss using the proper DINOLoss class
+        loss = self.dino_loss(student_view1, student_view2, teacher_view1, teacher_view2, self.current_epoch)
+        
+        # Update EMA model
+        self._maybe_update_ema(self.global_step)
+        
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
+        return loss
+        
+    def validation_step(self, batch, batch_idx):
+        views = batch.get("views")
+        
+        # Student forward pass
+        student_output = self.forward_dino(views, is_teacher=False)
+        
+        # Teacher forward pass (with no gradients)
+        with torch.no_grad():
+            teacher_output = self.forward_dino(views, is_teacher=True)
+        
+        # Chunk the batch into two views (following pattern from other wrappers)
+        student_view1, student_view2 = torch.chunk(student_output, 2, dim=0)
+        teacher_view1, teacher_view2 = torch.chunk(teacher_output, 2, dim=0)
+            
+        # Compute DINO loss using the proper DINOLoss class
+        loss = self.dino_loss(student_view1, student_view2, teacher_view1, teacher_view2, self.current_epoch)
+        
+        self.log("loss", loss, prog_bar=True, on_step=True, on_epoch=True, logger=True)
+        return loss
+        
+    def _maybe_update_ema(self, global_step: int):
+        """Update EMA model parameters"""
+        if global_step > self.ema_params.get("update_after_step", 0) and global_step % self.ema_params.get("update_every", 1) == 0:
+            self.update_ema()
+            
+    def update_ema(self):
+        """Update EMA model parameters"""
+        rate = self.ema_params.get("beta", 0.996)
+        for param, ema_param in zip(self.backbone.parameters(), self.ema_backbone.parameters()):
+            ema_param.data.copy_(rate * ema_param.data + (1 - rate) * param.data)
+        for param, ema_param in zip(self.projection_head.parameters(), self.ema_projection_head.parameters()):
+            ema_param.data.copy_(rate * ema_param.data + (1 - rate) * param.data)

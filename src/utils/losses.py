@@ -188,8 +188,8 @@ class SupConLoss(nn.Module):
 
 
 class DINOLoss(nn.Module):
-    def __init__(self, out_dim, ncrops, warmup_teacher_temp, teacher_temp,
-                 warmup_teacher_temp_steps, nepochs, student_temp=0.1,
+    def __init__(self, out_dim, warmup_teacher_temp, teacher_temp,
+                 warmup_teacher_temp_epochs, nepochs, student_temp=0.1,
                  center_momentum=0.9):
         super().__init__()
         self.student_temp = student_temp
@@ -199,28 +199,42 @@ class DINOLoss(nn.Module):
         # a too high temperature makes the training instable at the beginning
         self.teacher_temp_schedule = np.concatenate((
             np.linspace(warmup_teacher_temp,
-                        teacher_temp, warmup_teacher_temp_steps),
-            np.ones(nepochs - warmup_teacher_temp_steps) * teacher_temp
+                        teacher_temp, warmup_teacher_temp_epochs),
+            np.ones(nepochs - warmup_teacher_temp_epochs) * teacher_temp
         ))
-        self.step = 0
 
-    def forward(self, student_output, teacher_output):
+    def forward(self, student_view1, student_view2, teacher_view1, teacher_view2, epoch):
         """
         Cross-entropy between softmax outputs of the teacher and student networks.
+        Args:
+            student_view1: First view of student output (already chunked)
+            student_view2: Second view of student output (already chunked)
+            teacher_view1: First view of teacher output (already chunked)
+            teacher_view2: Second view of teacher output (already chunked)
+            epoch: Current epoch for temperature scheduling
         """
-        student_out = student_output / self.student_temp
+        # Apply temperature to student outputs
+        student_out_1 = student_view1 / self.student_temp
+        student_out_2 = student_view2 / self.student_temp
+
+        # Teacher centering and sharpening
+        temp = self.teacher_temp_schedule[epoch]
+        teacher_out_1 = F.softmax((teacher_view1 - self.center) / temp, dim=-1).detach()
+        teacher_out_2 = F.softmax((teacher_view2 - self.center) / temp, dim=-1).detach()
+
+        # Compute cross-view losses
+        # Student view 1 predicts teacher view 2
+        loss_1 = torch.sum(-teacher_out_2 * F.log_softmax(student_out_1, dim=-1), dim=-1)
+        # Student view 2 predicts teacher view 1  
+        loss_2 = torch.sum(-teacher_out_1 * F.log_softmax(student_out_2, dim=-1), dim=-1)
         
-
-        # teacher centering and sharpening
-        temp = self.teacher_temp_schedule[self.step]
-        teacher_out = F.softmax((teacher_output - self.center) / temp, dim=-1)
-        teacher_out = teacher_out.detach().chunk(2)
-
-
-        loss = torch.sum(-q * F.log_softmax(student_out, dim=-1), dim=-1)
-        self.update_center(teacher_output)
-        self.step += 1
-        return loss.mean()
+        total_loss = (loss_1.mean() + loss_2.mean()) / 2
+        
+        # Update center with all teacher outputs
+        teacher_all = torch.cat([teacher_view1, teacher_view2], dim=0)
+        self.update_center(teacher_all)
+        
+        return total_loss
 
     @torch.no_grad()
     def update_center(self, teacher_output):
@@ -228,8 +242,11 @@ class DINOLoss(nn.Module):
         Update center used for teacher output.
         """
         batch_center = torch.sum(teacher_output, dim=0, keepdim=True)
-        dist.all_reduce(batch_center)
-        batch_center = batch_center / (len(teacher_output) * dist.get_world_size())
+        if dist.is_initialized():
+            dist.all_reduce(batch_center)
+            batch_center = batch_center / (len(teacher_output) * dist.get_world_size())
+        else:
+            batch_center = batch_center / len(teacher_output)
 
         # ema update
         self.center = self.center * self.center_momentum + batch_center * (1 - self.center_momentum)

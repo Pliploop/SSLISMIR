@@ -246,7 +246,7 @@ class SaveEmbeddingsCallback(Callback):
 
         # Get file paths and labels
         file_paths = batch.get("file_path", None)
-        labels = batch.get("label", None)
+        labels = batch.get("name", None)
 
         # Convert to list if not already
         if isinstance(file_paths, str):
