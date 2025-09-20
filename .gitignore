@@ -9,3 +9,11 @@ wandb
 
 music-ssl-ismir
 ssl-music-tutorial/*
+
+# include the following files:
+# data/embeddings/contrastive_embeddings/*
+# music-ssl-ismir/kqrp1jio/checkpoints/epoch=359-step=6480.ckpt
+
+
+!data/embeddings/contrastive_embeddings/*
+!music-ssl-ismir/kqrp1jio/checkpoints/epoch=359-step=6480.ckpt
