@@ -14,9 +14,11 @@ if ! command -v conda &> /dev/null; then
     exit 1
 fi
 
-# Create conda environment
+# Create conda environment if it doesn't exist
+if [ ! -d $(conda info --base)/envs/ismir_ssl_2025 ]; then
 echo "📦 Creating conda environment 'ismir_ssl_2025'..."
 conda create -n ismir_ssl_2025 python=3.10 -y
+fi
 
 # Activate environment
 echo "🔄 Activating environment..."
