@@ -163,7 +163,7 @@ callbacks:
       monitor: "loss"
       mode: "min"
       save_top_k: -1
-      every_n_epochs: 20
+      every_n_epochs: 30
   
   embedding_viz:
     _name_: "callbacks.viz2d.Embedding2DVisualizationCallback"
@@ -188,7 +188,7 @@ callbacks:
   save_embeddings:
     _name_: "callbacks.viz2d.SaveEmbeddingsCallback"
     _kwargs_:
-      every_n_epochs: 5
+      every_n_epochs: 30
       save_dir: "data/embeddings/byol_embeddings"
 
 # Strategy configuration
