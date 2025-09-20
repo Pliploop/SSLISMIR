@@ -7,7 +7,7 @@
 lightning_logs
 wandb
 
-music-ssl-ismir
+music-ssl-ismir/*
 ssl-music-tutorial/*
 
 # include the following files:
